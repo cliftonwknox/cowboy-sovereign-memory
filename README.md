@@ -1,5 +1,7 @@
 # Cowboy Claude's Sovereign Memory 🤠
 
+![Cowboy Claude's Sovereign Memory](docs/social-card.png)
+
 A **local, private, self-tending memory for Claude Code** — recall that surfaces what's
 relevant, capture that keeps what matters, and a nightly *sleep* that reinforces the
 useful, lets the trivial fade, and abstracts recurring details into durable lessons.
