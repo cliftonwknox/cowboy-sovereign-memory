@@ -13,7 +13,23 @@ useful, lets the trivial fade, and abstracts recurring details into durable less
 - **Built for Claude to install.** The included skill lets *your* Claude Code instance
   detect your setup, recommend a tier, stand it up, and seed it — conversationally.
 
-## Quickstart
+## Status
+
+**v0.1.0 — early.** Validated on **Linux** (core logic + the real-embedder recall path).
+**macOS** is designed-for but **community-unverified** — Mac users, reports welcome.
+See [`CHANGELOG.md`](CHANGELOG.md).
+
+## Install (Claude Code plugin)
+
+```
+/plugin marketplace add cliftonwknox/cowboy-sovereign-memory
+/plugin install cowboy-sovereign-memory
+```
+Then tell your Claude instance **`/memory-install`** — it reads the skill + `docs/DESIGN.md`
+and walks you through standing up the backend (store, embedder, optional dreamer, hooks,
+nightly schedule) and seeding your own notes. Nothing leaves your machine.
+
+## Quickstart (manual)
 
 > The intended path: ask your Claude Code instance to **`/memory-install`** (or "set up my
 > sovereign memory") — it will read the skill + `docs/DESIGN.md` and walk you through it.
