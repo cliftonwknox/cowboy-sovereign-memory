@@ -1,0 +1,31 @@
+"""MCP server exposing `remember_memory` + `memory_search`.
+
+Named `mcp_tools` (NOT `mcp`) so it never shadows the official `mcp` SDK package —
+a real bug we hit once. Register with: `claude mcp add cowboy-memory -- \
+  <venv>/bin/python -m memory.mcp_tools`
+"""
+from __future__ import annotations
+
+from mcp.server.fastmcp import FastMCP
+
+from memory.capture import remember
+from memory.recall import search_text
+
+server = FastMCP("cowboy-sovereign-memory")
+
+
+@server.tool()
+def remember_memory(summary: str, content: str, pinned: bool = False) -> str:
+    """Keep a durable fact worth remembering across sessions (judged → semantic layer)."""
+    eid = remember(summary=summary, content=content, pinned=pinned)
+    return f"Remembered engram {eid}: {summary}"
+
+
+@server.tool()
+def memory_search(query: str, k: int = 5) -> list:
+    """Search your sovereign memory for relevant past facts."""
+    return search_text(query, k=k)
+
+
+if __name__ == "__main__":
+    server.run()
