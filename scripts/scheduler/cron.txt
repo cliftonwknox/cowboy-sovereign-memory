@@ -1,0 +1,3 @@
+# Universal fallback (any OS with cron). Add with:  crontab -e
+# Runs the nightly sleep at 04:00, logging to sleep.log.
+0 4 * * * cd "$HOME/cowboy-sovereign-memory" && .venv/bin/python cron/run_sleep.py >> "$HOME/cowboy-sovereign-memory/sleep.log" 2>&1

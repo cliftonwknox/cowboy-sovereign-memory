@@ -1,0 +1,10 @@
+# Cowboy Claude's Sovereign Memory — portable defaults (Lite/Standard/Full on sqlite-vec)
+sqlite-vec>=0.1.0      # embedded vector store (the portable default)
+numpy>=1.24           # cosine math for sleep (merge/consolidate/conflict)
+mcp>=1.0              # MCP server for remember_memory + memory_search
+
+# --- power option (only if CCSM_STORE=mariadb) ---
+# mariadb>=1.1         # native VECTOR backend; needs a MariaDB >= 11.7 server
+
+# Note: the embedder + dreamer are llama.cpp servers (or any OpenAI-style endpoint),
+# not Python deps. The recall hot path uses only the stdlib (urllib) on purpose.

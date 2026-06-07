@@ -1,0 +1,10 @@
+# Linux (systemd, user unit). Install:
+#   cp scripts/scheduler/ccsm-sleep.* ~/.config/systemd/user/
+#   systemctl --user enable --now ccsm-sleep.timer
+[Unit]
+Description=Cowboy Claude's Sovereign Memory — nightly sleep
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/cowboy-sovereign-memory
+ExecStart=%h/cowboy-sovereign-memory/.venv/bin/python cron/run_sleep.py

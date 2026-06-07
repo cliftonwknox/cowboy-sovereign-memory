@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- macOS (launchd). Install:
+       cp scripts/scheduler/com.cowboy.ccsm.sleep.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.cowboy.ccsm.sleep.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.cowboy.ccsm.sleep</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>cd "$HOME/cowboy-sovereign-memory" &amp;&amp; .venv/bin/python cron/run_sleep.py</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>0</integer></dict>
+  <key>RunAtLoad</key><false/>
+</dict>
+</plist>
