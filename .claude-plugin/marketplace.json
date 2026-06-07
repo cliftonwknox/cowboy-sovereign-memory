@@ -1,5 +1,6 @@
 {
   "name": "cowboy-sovereign-memory",
+  "description": "Cowboy Claude's Sovereign Memory — a local, private, self-tending memory plugin for Claude Code.",
   "owner": {
     "name": "Clifton Knox",
     "url": "https://github.com/cliftonwknox"
