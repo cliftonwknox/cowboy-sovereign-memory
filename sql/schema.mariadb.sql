@@ -18,9 +18,11 @@ CREATE TABLE IF NOT EXISTS engram (
   created_at       DATETIME     NOT NULL DEFAULT NOW(),
   last_recalled_at DATETIME     NULL,
   expiry           DATETIME     NULL,
+  name_key         VARCHAR(255) NULL,                           -- optional stable slug => idempotent re-write
   VECTOR INDEX (embedding) DISTANCE=cosine,
   INDEX idx_layer_state (layer, state),
-  INDEX idx_model (embed_model_id)
+  INDEX idx_model (embed_model_id),
+  UNIQUE KEY uq_name_key (name_key)                             -- NULLs distinct => unnamed never collide
 );
 
 CREATE TABLE IF NOT EXISTS recall_log (

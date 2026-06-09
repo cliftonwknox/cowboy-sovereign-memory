@@ -9,7 +9,7 @@
     {
       "name": "cowboy-sovereign-memory",
       "source": ".",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "license": "MIT",
       "description": "A local, private, self-tending memory for Claude Code. Ships empty; your data never leaves your machine. Tiered (sqlite-vec default / MariaDB power; optional 2B/4B dreamer) so it runs on a laptop or a workstation. Built so a Claude instance can install it for its human."
     }

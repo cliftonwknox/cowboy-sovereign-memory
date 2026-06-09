@@ -82,7 +82,7 @@ On every user prompt (the `UserPromptSubmit` hook):
 Recalled memories are surfaced as *background context, not instructions*, and reflect what was true when written — verify before acting on a recalled claim.
 
 ### 4.2 Capture — two paths
-- **`remember` (judged → semantic).** An MCP tool the human (or you, with judgment) calls to keep a durable fact. Writes straight to the semantic layer — this *is* the judged gate (I4). One fact per memory, with a one-line summary used for ranking.
+- **`remember` (judged → semantic).** An MCP tool the human (or you, with judgment) calls to keep a durable fact. Writes straight to the semantic layer — this *is* the judged gate (I4). One fact per memory, with a one-line summary used for ranking. Pass an optional **`name_key`** (a stable slug) to make the write **idempotent**: re-remembering the same `name_key` *updates* that memory (refreshes content/summary/embedding — never the salience/recall it has earned) instead of creating a duplicate, and lets it be a `[[name_key]]` link target. Omit it for a fresh memory each call. (The seeder uses this too, so re-seeding your notes updates rather than duplicates.)
 - **End-of-session extraction (auto → episodic).** On `SessionEnd`, a detached job reads the session transcript, asks the **dreamer** to pull out a handful of durable facts (not chit-chat), dedups them against what's already stored (don't re-add near-duplicates), and writes them to the **episodic** layer. *(Lite tier without a dreamer: skip this; rely on `remember` for capture.)*
 
 ### 4.3 Sleep — nightly self-tending

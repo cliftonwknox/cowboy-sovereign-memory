@@ -36,7 +36,8 @@ class Store:
     """Backend interface. Recall / capture / sleep use ONLY these."""
     def init_schema(self) -> None: ...
     def write_engram(self, *, layer, kind, content, summary, embedding, embed_model_id,
-                     embed_dim, origin="judged", confidence="medium", pinned=False) -> int: ...
+                     embed_dim, origin="judged", confidence="medium", pinned=False,
+                     name_key=None) -> int: ...
     def search(self, query_vec, embed_model_id, k, layers=None) -> list[Candidate]: ...
     def get(self, engram_id) -> Optional[dict]: ...
     def log_recall(self, engram_id, score) -> None: ...
@@ -78,12 +79,28 @@ class SqliteVecStore(Store):
         self.conn.commit()
 
     def write_engram(self, *, layer, kind, content, summary, embedding, embed_model_id,
-                     embed_dim, origin="judged", confidence="medium", pinned=False) -> int:
+                     embed_dim, origin="judged", confidence="medium", pinned=False,
+                     name_key=None) -> int:
+        # Idempotent when name_key is given: UPDATE the existing row's content/summary/
+        # embedding ONLY — never the self-tending fields (salience/state/pinned/recall).
+        if name_key:
+            row = self.conn.execute(
+                "SELECT id FROM engram WHERE name_key=?", (name_key,)).fetchone()
+            if row:
+                eid = row["id"]
+                self.conn.execute(
+                    "UPDATE engram SET content=?, summary=?, embed_model_id=?, embed_dim=? "
+                    "WHERE id=?", (content, summary, embed_model_id, embed_dim, eid))
+                self.conn.execute("DELETE FROM vec_engram WHERE rowid=?", (eid,))
+                self.conn.execute("INSERT INTO vec_engram(rowid, embedding) VALUES (?, ?)",
+                                  (eid, self._ser(embedding)))
+                self.conn.commit()
+                return eid
         cur = self.conn.execute(
             "INSERT INTO engram (layer,kind,content,summary,embed_model_id,embed_dim,"
-            "origin,confidence,pinned) VALUES (?,?,?,?,?,?,?,?,?)",
+            "origin,confidence,pinned,name_key) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (layer, kind, content, summary, embed_model_id, embed_dim, origin, confidence,
-             int(pinned)))
+             int(pinned), name_key))
         eid = cur.lastrowid
         self.conn.execute("INSERT INTO vec_engram(rowid, embedding) VALUES (?, ?)",
                           (eid, self._ser(embedding)))
@@ -209,13 +226,27 @@ class MariaDBStore(Store):
         self.conn.commit()
 
     def write_engram(self, *, layer, kind, content, summary, embedding, embed_model_id,
-                     embed_dim, origin="judged", confidence="medium", pinned=False) -> int:
+                     embed_dim, origin="judged", confidence="medium", pinned=False,
+                     name_key=None) -> int:
         cur = self.conn.cursor()
+        # Idempotent when name_key is given: UPDATE content/summary/embedding ONLY —
+        # never the self-tending fields (salience/state/pinned/recall).
+        if name_key:
+            cur.execute("SELECT id FROM engram WHERE name_key=?", (name_key,))
+            row = cur.fetchone()
+            if row:
+                eid = row[0]
+                cur.execute(
+                    "UPDATE engram SET content=?, summary=?, embedding=VEC_FromText(?), "
+                    "embed_model_id=?, embed_dim=? WHERE id=?",
+                    (content, summary, json.dumps(embedding), embed_model_id, embed_dim, eid))
+                self.conn.commit()
+                return eid
         cur.execute(
             "INSERT INTO engram (layer,kind,content,summary,embedding,embed_model_id,embed_dim,"
-            "origin,confidence,pinned) VALUES (?,?,?,?,VEC_FromText(?),?,?,?,?,?)",
+            "origin,confidence,pinned,name_key) VALUES (?,?,?,?,VEC_FromText(?),?,?,?,?,?,?)",
             (layer, kind, content, summary, json.dumps(embedding), embed_model_id, embed_dim,
-             origin, confidence, int(pinned)))
+             origin, confidence, int(pinned), name_key))
         self.conn.commit()
         return cur.lastrowid
 

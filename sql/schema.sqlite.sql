@@ -17,10 +17,14 @@ CREATE TABLE IF NOT EXISTS engram (
     pinned           INTEGER NOT NULL DEFAULT 0,
     created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
     last_recalled_at TEXT,
-    expiry           TEXT
+    expiry           TEXT,
+    name_key         TEXT                              -- optional stable slug => idempotent re-write
 );
 CREATE INDEX IF NOT EXISTS idx_engram_layer_state ON engram(layer, state);
 CREATE INDEX IF NOT EXISTS idx_engram_model       ON engram(embed_model_id);
+-- UNIQUE makes remember(name_key=...) idempotent. SQLite treats NULLs as distinct,
+-- so unnamed engrams (name_key IS NULL) never collide.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_engram_name_key ON engram(name_key);
 
 -- Vector index (sqlite-vec virtual table). rowid mirrors engram.id.
 -- distance_metric=cosine so MATCH returns cosine distance (cosine_sim = 1 - distance).

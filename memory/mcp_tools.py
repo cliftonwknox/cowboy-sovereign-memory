@@ -15,9 +15,16 @@ server = FastMCP("cowboy-sovereign-memory")
 
 
 @server.tool()
-def remember_memory(summary: str, content: str, pinned: bool = False) -> str:
-    """Keep a durable fact worth remembering across sessions (judged → semantic layer)."""
-    eid = remember(summary=summary, content=content, pinned=pinned)
+def remember_memory(summary: str, content: str, pinned: bool = False,
+                    name_key: str = "") -> str:
+    """Keep a durable fact worth remembering across sessions (judged → semantic layer).
+
+    Pass name_key (a stable kebab/snake slug) to make the write idempotent:
+    re-remembering the same name_key UPDATES that memory (refreshes content/summary/
+    embedding) instead of creating a duplicate. Omit it for a fresh memory each call.
+    """
+    eid = remember(summary=summary, content=content, pinned=pinned,
+                   name_key=name_key or None)
     return f"Remembered engram {eid}: {summary}"
 
 
