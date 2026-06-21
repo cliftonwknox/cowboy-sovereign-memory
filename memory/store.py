@@ -314,8 +314,10 @@ class MariaDBStore(Store):
 
     def has_proposal(self, kind, engram_id) -> bool:
         cur = self.conn.cursor()
-        cur.execute("SELECT 1 FROM promotion_proposal WHERE kind=? AND engram_id=? "
-                    "AND decision='pending'", (kind, engram_id))
+        # Any prior proposal (pending OR decided) blocks re-proposing — a rejected
+        # promote/merge stays rejected and doesn't reappear next sleep cycle.
+        cur.execute("SELECT 1 FROM promotion_proposal WHERE kind=? AND engram_id=?",
+                    (kind, engram_id))
         return cur.fetchone() is not None
 
     def add_proposal(self, kind, engram_id, target_id, signals):
