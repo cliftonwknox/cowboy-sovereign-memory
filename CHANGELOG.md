@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.4.0 — 2026-08-12
+**Retention will not act on a signal that was never recorded**, and deleting is now separate
+from retiring.
+
+### Fixed
+- **A size limit alone did not protect a store whose last-use column was never written.** If the
+  stale share happened to fall under the wave limit, rows were archived on a signal that did not
+  exist. The guard now refuses outright when no memory has a last use later than its creation —
+  the signature of a column nothing has ever updated. Confirm recall records last use, baseline the
+  column, then let a pass run.
+
+### Added
+- **`--dry-run`** on the nightly job reports what a pass would archive and changes nothing. What
+  decides which memories are kept has to be inspectable before it is trusted.
+- **`forget_memory`** — authoritative removal, for something that should never have been stored:
+  a secret, personal data, a fact you were asked to drop. It removes the memory, its archive copy
+  and its dependent rows. This is *not* retirement — retiring archives a memory and keeps the text
+  so it can come back. Copies already written to a markdown export or a database backup are outside
+  its reach and are not claimed.
+
+### Changed
+- The care skill now states the distinction plainly: retiring is reversible, deleting is not, and
+  a memory that is merely finished needs no action because it retires on its own.
+
 ## v0.3.0 — 2026-08-12
 **Memories are kept by use, not age** — plus the repairs that made that safe to switch on.
 

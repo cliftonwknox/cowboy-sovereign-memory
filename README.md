@@ -20,13 +20,13 @@ useful, lets the trivial fade, and abstracts recurring details into durable less
 
 ## Status
 
-**v0.3.0 — early.** Validated on **Linux** (core logic + the real-embedder recall path).
+**v0.4.0 — early.** Validated on **Linux** (core logic + the real-embedder recall path).
 **macOS** is designed-for but **community-unverified** — Mac users, reports welcome.
-New in 0.3.0: **what a store keeps is now decided by last use, not age** — a memory still
-being recalled survives however old it is, and one nothing asks for retires however recent.
-Recall now feeds reinforcement on every read path, writes choose their layer, and the new
-**`winnow`** skill covers writing memories that can be found and clearing away what has
-finished. See [`CHANGELOG.md`](CHANGELOG.md).
+New in 0.4.0: **retention will not run on a signal that was never recorded** — the guard now
+refuses outright when no memory has a last use later than its creation, and `--dry-run` reports
+what a pass would archive without archiving it. **Deleting is now separate from retiring**:
+`forget_memory` removes a memory and its archive copy, for something that should never have
+been stored. See [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Install (Claude Code plugin)
 
@@ -56,7 +56,7 @@ scripts/install.sh                  # venv + deps + store schema (sqlite-vec)
 - **`memory/`** — the library: `store` (sqlite-vec ↔ MariaDB), `embed`, `recall`,
   `capture`, `dreamer`, `extract`, `sleep`.
 - **`hooks/`** — `user_prompt_submit` (recall) · `session_end` (extraction).
-- **`mcp` tools** — `memory/mcp_tools.py` (`remember_memory`, `memory_search`).
+- **`mcp` tools** — `memory/mcp_tools.py` (`remember_memory`, `memory_search`, `forget_memory`).
 - **`cron/run_sleep.py`** — the nightly cycle · **`backup/`** — markdown export.
 - **`skills/`** — the agent runbook (install + operate) and **`winnow`**, the care
   discipline: how to write a memory that can be found again, and how to clear away what
