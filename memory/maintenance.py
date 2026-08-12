@@ -24,13 +24,12 @@ from memory.embed import EMBED_CAP
 # large means a tunable moved, not that memory genuinely went stale.
 ARCHIVE_WAVE_LIMIT = 0.10
 
-# Dump locations that are expected to stay current.
-BACKUP_DIRS = (
-    "/mnt/storage/cowboy-memory-backups",
-    "/mnt/grindhouse-backup/Nautilus-Backups/cowboy-memory-db",
-    "/mnt/storage/COWBOY-MEMORY-EMERGENCY",
+# Dump locations expected to stay current, as an os.pathsep-separated list. Machine
+# specific, so it is configured rather than assumed; unset means the check is skipped.
+BACKUP_DIRS = tuple(
+    d for d in os.environ.get("CCSM_BACKUP_DIRS", "").split(os.pathsep) if d.strip()
 )
-BACKUP_STALE_DAYS = 2
+BACKUP_STALE_DAYS = int(os.environ.get("CCSM_BACKUP_STALE_DAYS", "2"))
 
 # Tool-call markup that leaks into content when a write is malformed; everything
 # from the closing tag onward is transport, not memory.
