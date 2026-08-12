@@ -9,6 +9,7 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 from memory.capture import remember
+from memory.embed import EMBED_CAP
 from memory.recall import search_text
 
 server = FastMCP("cowboy-sovereign-memory")
@@ -25,6 +26,15 @@ def remember_memory(summary: str, content: str, pinned: bool = False,
     """
     eid = remember(summary=summary, content=content, pinned=pinned,
                    name_key=name_key or None)
+    # The embedder only sees the first EMBED_CAP characters of summary+content, so
+    # anything past it is stored but can never be matched by a search. Say so at the
+    # moment of the write — silently keeping unsearchable text is the worse failure.
+    overflow = len(summary) + 1 + len(content) - EMBED_CAP
+    if overflow > 0:
+        return (f"Remembered engram {eid}: {summary}\n"
+                f"WARNING: {overflow} characters past the {EMBED_CAP}-char embed cap are "
+                f"UNSEARCHABLE. Split this along topic seams into separate memories and "
+                f"re-store them; trimming does not help, and appending makes it worse.")
     return f"Remembered engram {eid}: {summary}"
 
 

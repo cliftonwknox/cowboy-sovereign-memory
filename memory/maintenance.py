@@ -18,9 +18,7 @@ import os
 import re
 import urllib.request
 
-# Text past this many characters is stored but never embedded, so it cannot be
-# matched by search. Mirrors the truncation in embed().
-EMBED_CAP = 1400
+from memory.embed import EMBED_CAP
 
 # Refuse to archive a wave larger than this share of the active store; a jump that
 # large means a tunable moved, not that memory genuinely went stale.
@@ -115,15 +113,19 @@ def fix_missing_vectors(store, cfg) -> str | None:
 
 def check_over_cap(store) -> str | None:
     """Content past the embed cap is stored but invisible to search."""
-    rows = _rows(store, "SELECT id, CHAR_LENGTH(summary)+1+CHAR_LENGTH(content) AS n "
-                        "FROM engram WHERE state='active' "
-                        "AND CHAR_LENGTH(summary)+1+CHAR_LENGTH(content) > ? "
-                        "ORDER BY n DESC LIMIT 10", (EMBED_CAP,))
-    if not rows:
+    over = "CHAR_LENGTH(summary)+1+CHAR_LENGTH(content)"
+    row = _rows(store, f"SELECT COUNT(*), SUM({over}-?) FROM engram "
+                       f"WHERE state='active' AND {over} > ?", (EMBED_CAP, EMBED_CAP))
+    count, hidden = (row[0][0], row[0][1]) if row else (0, 0)
+    if not count:
         return None
-    worst = ", ".join(f"{i}({n})" for i, n in rows[:5])
-    return (f"{len(rows)}+ engram(s) exceed the {EMBED_CAP}-char embed cap; the tail is "
-            f"unsearchable. Split along topic seams, do not trim: {worst}")
+    # Report the whole population, not the sample — a capped list reads as the
+    # total and hides the scale of the problem.
+    worst = _rows(store, f"SELECT id, {over} AS n FROM engram WHERE state='active' "
+                         f"AND {over} > ? ORDER BY n DESC LIMIT 5", (EMBED_CAP,))
+    return (f"{count} engram(s) exceed the {EMBED_CAP}-char embed cap, hiding "
+            f"{int(hidden or 0):,} unsearchable characters. Split along topic seams, do "
+            f"not trim. Worst: " + ", ".join(f"{i}({n})" for i, n in worst))
 
 
 def check_duplicate_keys(store) -> str | None:

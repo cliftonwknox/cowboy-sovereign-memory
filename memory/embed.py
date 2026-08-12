@@ -9,6 +9,10 @@ from __future__ import annotations
 import json
 import urllib.request
 
+# Longest input the embedder is offered. Text past this is stored but never
+# embedded, so it cannot be matched by any search.
+EMBED_CAP = 1400
+
 
 def embed(text: str, cfg, timeout: float | None = None) -> list[float]:
     """Return the embedding vector for `text`.
@@ -23,7 +27,7 @@ def embed(text: str, cfg, timeout: float | None = None) -> list[float]:
     text = text or ""
     secs = (timeout if timeout is not None else cfg.recall_timeout_ms / 1000.0)
     last_exc: Exception | None = None
-    for cap in (1400, 1000, 700, 500):
+    for cap in (EMBED_CAP, 1000, 700, 500):
         try:
             return _embed_once(text[:cap], cfg, secs)
         except Exception as exc:  # too-large batch / transient — retry shorter
