@@ -51,7 +51,10 @@ scripts/install.sh                  # venv + deps + store schema (sqlite-vec)
 - **`hooks/`** — `user_prompt_submit` (recall) · `session_end` (extraction).
 - **`mcp` tools** — `memory/mcp_tools.py` (`remember_memory`, `memory_search`).
 - **`cron/run_sleep.py`** — the nightly cycle · **`backup/`** — markdown export.
-- **`skills/` + `commands/`** — the agent runbook + `/memory-install`, `/memory-status`.
+- **`skills/`** — the agent runbook (install + operate) and **`winnow`**, the care
+  discipline: how to write a memory that can be found again, and how to clear away what
+  has finished so the rest can surface. · **`commands/`** — `/memory-install`,
+  `/memory-status`.
 - **`scripts/`** — installer, seeder, and schedulers (systemd / launchd / cron).
 
 ## The four invariants
