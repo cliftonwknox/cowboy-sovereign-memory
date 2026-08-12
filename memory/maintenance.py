@@ -139,6 +139,20 @@ def check_duplicate_keys(store) -> str | None:
            ", ".join(f"{k}×{c}" for k, c in rows)
 
 
+def check_unkeyed_judged(store) -> str | None:
+    """A deliberate memory with no name_key cannot be updated in place, so the next
+    write on the same subject invents a slug and silently adds a duplicate."""
+    n = _scalar(store, "SELECT COUNT(*) FROM engram WHERE state='active' "
+                       "AND origin='judged' AND (name_key IS NULL OR name_key='')") or 0
+    if not n:
+        return None
+    worst = _rows(store, "SELECT id FROM engram WHERE state='active' AND origin='judged' "
+                         "AND (name_key IS NULL OR name_key='') ORDER BY id DESC LIMIT 5")
+    return (f"{n} deliberate engram(s) have no name_key and cannot be updated in place; "
+            "a later write on the same subject will duplicate them instead. Recent: "
+            + ", ".join(str(r[0]) for r in worst))
+
+
 def check_reinforcement_live(store) -> str | None:
     """Salience must be able to rise; if it never does, decay is a blind age clock."""
     if _scalar(store, "SELECT COUNT(*) FROM engram WHERE state='active' AND pinned=0 "
@@ -197,7 +211,7 @@ def check_review_backlog(store) -> str | None:
     """Proposals and conflicts are queued for judgement and never expire on their own."""
     props = _scalar(store, "SELECT COUNT(*) FROM promotion_proposal "
                            "WHERE decision='pending'") or 0
-    conflicts = _scalar(store, "SELECT COUNT(*) FROM conflict") or 0
+    conflicts = _scalar(store, "SELECT COUNT(*) FROM conflict WHERE state='open'") or 0
     if props + conflicts == 0:
         return None
     oldest = _scalar(store, "SELECT MIN(created_at) FROM promotion_proposal "
@@ -274,6 +288,7 @@ def run(store, cfg, *, stats: str = "", held: str | None = None) -> tuple[str, l
         except Exception as e:
             findings.append(f"repair step failed: {type(e).__name__}: {e}")
     for check in (lambda: check_over_cap(store), lambda: check_duplicate_keys(store),
+                  lambda: check_unkeyed_judged(store),
                   lambda: check_reinforcement_live(store),
                   lambda: check_unwritten_required_columns(store),
                   lambda: check_backups(), lambda: check_review_backlog(store),
