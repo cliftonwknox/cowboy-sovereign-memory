@@ -81,6 +81,11 @@ def search_text(query: str, k: int = 5) -> list[dict]:
     store = open_store(cfg)
     try:
         cands = store.search(embed(query, cfg, timeout=30), cfg.embed_model_id, k=k)
+        for c in cands:
+            try:
+                store.log_recall(c.id, c.cosine)  # best-effort reinforcement signal
+            except Exception:
+                pass
         return [{"id": c.id, "summary": c.summary, "content": c.content,
                  "cosine": round(c.cosine, 3)} for c in cands]
     finally:

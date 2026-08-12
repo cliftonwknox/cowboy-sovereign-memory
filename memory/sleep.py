@@ -112,8 +112,10 @@ def run() -> str:
     store = open_store(cfg)
     try:
         log = [f"reinforced {store.reinforce()}"]
-        store.decay(); log.append("decayed")
-        log.append(f"archived {store.expire_and_archive()}")
+        # Unrecalled episodic memory reaches the archive floor in ~3 weeks; a
+        # single recall buys back several nights, so use outlives age.
+        store.decay(0.95); log.append("decayed")
+        log.append(f"archived {store.expire_and_archive(0.35)}")
         log.append(f"promotions {propose_promotions(store)}")
         log.append(f"merges {propose_merges(store)}")
         log.append(f"consolidations {propose_consolidations(store, cfg)}")
