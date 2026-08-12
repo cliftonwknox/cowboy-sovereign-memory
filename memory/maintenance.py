@@ -193,11 +193,13 @@ def check_backups(store=None) -> str | None:
 
 def check_review_backlog(store) -> str | None:
     """Proposals and conflicts are queued for judgement and never expire on their own."""
-    props = _scalar(store, "SELECT COUNT(*) FROM promotion_proposal") or 0
+    props = _scalar(store, "SELECT COUNT(*) FROM promotion_proposal "
+                           "WHERE decision='pending'") or 0
     conflicts = _scalar(store, "SELECT COUNT(*) FROM conflict") or 0
     if props + conflicts == 0:
         return None
-    oldest = _scalar(store, "SELECT MIN(created_at) FROM promotion_proposal")
+    oldest = _scalar(store, "SELECT MIN(created_at) FROM promotion_proposal "
+                            "WHERE decision='pending'")
     age = f", oldest {str(oldest)[:10]}" if oldest else ""
     return (f"awaiting judgement: {props} promotion/merge proposal(s), "
             f"{conflicts} conflict(s){age}")
