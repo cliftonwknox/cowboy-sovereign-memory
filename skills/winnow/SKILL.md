@@ -230,6 +230,22 @@ A bulk archive can report `0` while having moved a hundred rows; the return valu
 bulk statement is not evidence. Count the rows before and after, and confirm the archive
 copy exists. Verify by measuring the store, never by reading a tool's return value.
 
+### A partial scan reads as the whole
+
+Any check that samples — a `LIMIT`, a top-N list, output piped through `head` — produces a
+number that will later be read as the total. A health check that lists ten offenders reads
+as "there are ten," and the real figure can be a hundred times larger.
+
+So: **report the count separately from the sample.** Say how many there are, then show a
+few. If a scan is bounded, say what was left out, because a silent truncation is
+indistinguishable from a clean result.
+
+The same trap in a different coat: when checking whether something is safe to release,
+scan **what will ship**, not **what changed**. A review of the diff answers a narrower
+question than the one being asked, and anything already sitting in an untouched file
+passes untested. Scan the finished artifact, whole, and never truncate a safety scan's
+output.
+
 ## Columns that are not evidence
 
 Some columns look like usage data and are not — a recall counter that nothing increments
