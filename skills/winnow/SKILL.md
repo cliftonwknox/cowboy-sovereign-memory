@@ -170,6 +170,37 @@ For a memory whose tail is past the embed cap:
 3. **Still true *and* pinned?** Only now is splitting worth the effort, because pinned
    never retires, so its hidden tail is a permanent loss.
 
+## Repairing many memories at once
+
+A script that rewrites hundreds of memories is production code operating on the only copy
+of something. Give it the guards production code gets.
+
+**Never delete content in a repair — move it, or refuse to act.** A fixer that trims an
+overflow must confirm there is somewhere for the overflow to go. If there is not, stop and
+say so. A repair that silently drops what it cannot place is worse than the flaw it was
+fixing, because the flaw was visible and the loss is not.
+
+**Do not identify records by a pattern ordinary text can satisfy.** A key suffix that marks
+a split part also matches a key that merely ends in a number — a hardware model, a version,
+a port. Confirm the relationship really exists (the sibling, the base, the parent) before
+treating a row as a member of a set. One misidentified record is enough to corrupt it.
+
+**Expect your own checks to raise false positives, and verify before acting.** A structural
+check looking for `(N/M)` part markers also matches a ratio written in prose. Acting on an
+unverified finding is precisely how a repair becomes damage.
+
+**Measure before and after.** Content length across a family must not shrink; a split
+should conserve everything but whitespace at the seams. If it shrinks, restore from the
+export and fix the script before running it again.
+
+**Chunking leaves runts.** A split whose last part is a twenty-character fragment has
+produced a memory that says nothing and still competes in every search. Fold a runt into
+its neighbour, or rebalance the pair so both stand on their own.
+
+**Splitting is not free.** Skip it where the tail only restates the head: near-duplicate
+parts give the store several vectors that all match weakly instead of one that matches
+well. Split where the tail carries meaning the head does not.
+
 ## Judging what to retire — err toward keeping
 
 **No automated classifier does this reliably.** Expect these to fail:
