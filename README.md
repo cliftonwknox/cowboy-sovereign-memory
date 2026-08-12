@@ -20,11 +20,13 @@ useful, lets the trivial fade, and abstracts recurring details into durable less
 
 ## Status
 
-**v0.2.0 — early.** Validated on **Linux** (core logic + the real-embedder recall path).
+**v0.3.0 — early.** Validated on **Linux** (core logic + the real-embedder recall path).
 **macOS** is designed-for but **community-unverified** — Mac users, reports welcome.
-New in 0.2.0: **idempotent writes** — pass a stable `name_key` to `remember` and re-saving
-a memory updates it in place instead of duplicating (the seeder is idempotent too).
-See [`CHANGELOG.md`](CHANGELOG.md).
+New in 0.3.0: **what a store keeps is now decided by last use, not age** — a memory still
+being recalled survives however old it is, and one nothing asks for retires however recent.
+Recall now feeds reinforcement on every read path, writes choose their layer, and the new
+**`winnow`** skill covers writing memories that can be found and clearing away what has
+finished. See [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Install (Claude Code plugin)
 

@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.3.0 — 2026-08-12
+**Memories are kept by use, not age** — plus the repairs that made that safe to switch on.
+
+### Changed — read this before upgrading
+- **Retention now keys off last use.** A memory untouched for its layer's window is
+  archived however old or new it is; one still being recalled survives indefinitely.
+  Working state gets weeks, durable knowledge months, and pinned memories are exempt.
+  Salience still *orders* search results but no longer decides what is kept. Archiving
+  still moves rather than deletes, and now copies the key, dates and a reason so any of
+  it can be restored.
+- **Before enabling this on an existing store, baseline the last-use column.** If it was
+  never written, every memory falls back to its creation date and the whole store looks
+  abandoned at once. The nightly job refuses to archive an unusually large wave and says
+  so rather than acting on it.
+
+### Fixed
+- **Recall reinforcement never worked.** The recall log insert failed on every call and
+  the error was swallowed, so no memory's salience could ever rise and decay ran as a
+  pure age clock. Explicit searches now feed reinforcement too — previously only the
+  prompt hook did.
+- **The nightly pass re-proposed the same consolidations every night.** Proposals were
+  written with null keys, which never collide in a unique index, so a cluster already
+  awaiting judgement was proposed again on the next run — at the cost of a model call
+  each. Proposals are now anchored to their cluster and checked before the model runs.
+- **Conflict detection could not see time.** Comparing two undated summaries made a later
+  status read as a contradiction of an earlier one. Notes now carry their dates.
+- **Reviews counted decided items as outstanding**, so a worked queue never looked worked.
+
+### Added
+- **`skills/winnow`** — the care discipline: writing a memory that can be found again,
+  clearing away what has finished, and repairing many memories at once without losing
+  anything.
+- **A nightly self-check.** Deterministic checks run after the cognitive stages: mechanical
+  faults are repaired outright, anything needing judgement is filed as one dated report.
+  Every check is stateless, so an unresolved finding is re-measured the next night.
+- **Writes choose their layer.** `remember_memory` takes `layer="semantic"|"episodic"`, so
+  status and session state can age out instead of being permanent by default.
+- **Over-cap writes now warn.** Text past the embed cap is stored but can never be matched
+  by a search; the write tool reports the overflow it just created.
+- **Backup locations are configured**, not assumed, via `CCSM_BACKUP_DIRS` and
+  `CCSM_BACKUP_VAULT`. Unset means the check is skipped.
+
 ## v0.2.0 — 2026-06-09
 **Idempotent memory writes** — keep refining a memory without piling up duplicates.
 
