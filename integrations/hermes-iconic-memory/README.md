@@ -17,7 +17,8 @@ are frozen into the prompt at session start. Iconic Memory runs alongside them a
 single database file and no GPU required.
 
 - 🧠 **Auto-capture** — a small local model reads each session and extracts the durable facts.
-- 🔎 **Semantic recall** — every turn it surfaces what's *relevant*, instead of one frozen block.
+- 🔎 **Semantic recall** — every turn it surfaces what's *relevant*, alongside the small frozen
+  block native memory still injects.
 - 🌙 **Self-tending** — what nothing asks for retires, related memories merge, important ones persist.
   Retirement **archives** (reversible); deleting for real is a separate, explicit operation.
 - 🔌 **Drop-in** — a standard Hermes `MemoryProvider` plugin. No fork; remove it and native memory is

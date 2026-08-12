@@ -1,7 +1,7 @@
 # Hermes Iconic Memory — Design
 
-**What:** a drop-in `MemoryProvider` plugin for Hermes Agent that replaces the tiny
-hand-curated flat-file memory with a self-tending, vector-recalled, auto-extracting memory —
+**What:** a `MemoryProvider` plugin for Hermes Agent that runs alongside the small hand-curated
+flat-file memory and adds a self-tending, vector-recalled, auto-extracting corpus —
 the Cowboy-Memory architecture, repackaged and slimmed for other people's machines.
 **Who:** friends who run Hermes and want real cross-session memory without standing up a DB
 cluster or a GPU rig. **Author target:** zero-ops by default, power-ops by opt-in.
@@ -67,8 +67,8 @@ A sovereign, self-tending, human-shaped memory engine:
   extracts durable facts, **dedup-writing** them into the *episodic* scratch (`origin=auto_extracted`).
 - **Sleep (nightly + on demand):** **reinforce** salience from the recall log; **decay** unpinned
   rows (ordering only); **archive by last use** — a row untouched for its layer's window moves out,
-  however old or new, while one still being recalled stays; **archive = move-not-delete** (state
-  transition, never lose data); **consolidate** clusters related-but-distinct episodics (cosine in
+  however old or new, while one still being recalled stays; **archive = move-not-delete** (a state
+  transition; deletion is a separate, explicit operation); **consolidate** clusters related-but-distinct episodics (cosine in
   **[0.85, 0.97]**) into semantic; **judged promote/merge** proposals + **conflict-detect**, both
   adjudicated by the dreamer; a deterministic **self-check** that repairs mechanical faults and files
   the rest as one dated report.

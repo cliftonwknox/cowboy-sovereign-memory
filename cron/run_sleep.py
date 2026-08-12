@@ -64,6 +64,12 @@ def backup_db_to_vault(keep: int = 14) -> str:
 
 
 def main() -> None:
+    # --dry-run reports what retention would archive and changes nothing, so a store can
+    # be inspected before the rule that decides what is kept is trusted.
+    if "--dry-run" in sys.argv:
+        from memory.sleep import preview
+        print(preview())
+        return
     from memory.sleep import run
     print(run())
     try:

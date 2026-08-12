@@ -39,7 +39,7 @@ it's the freshest tier that feeds everything else.
 | **Embedded embedder** | A small in-process model (`bge-small`, ONNX) turns text into vectors for semantic search. No server, runs on CPU. |
 | **Dreamer (2B Gemma)** | A `gemma-2-2b-it` model, **pinned to CPU + RAM** (off the GPU), that extracts facts from sessions and adjudicates merges during maintenance. Runs in the background — never blocks a reply. |
 | **Recall engine** | Per turn: embeds the query, vector-searches memory, ranks by **relevance + importance + recency**, de-duplicates, and returns a compact block — with a strict time budget so it never slows the agent (fail-open). |
-| **Sleep cycle** | Periodic maintenance: reinforce what got used, retire what nothing has asked for within its window (archived, never deleted), merge related ones, then a deterministic self-check that repairs mechanical faults and reports the rest. |
+| **Sleep cycle** | Periodic maintenance: reinforce what got used, retire what nothing has asked for within its window (archived and restorable; deleting for real is a separate operation), merge related ones, then a deterministic self-check that repairs mechanical faults and reports the rest. |
 | **Memory tools** | `remember`, `recall`, `forget`, `pin` — so the agent (and you) can manage memory directly, on top of automatic capture. |
 | **CLI** | `hermes iconic sleep | stats | export | doctor` for maintenance, inspection, and backup. |
 | **The skill** | A bundled `SKILL.md` that teaches the agent good memory habits: recall before assuming, let auto-capture do the bulk, only remember durable + verified facts, never codify a guess. |
@@ -90,7 +90,7 @@ no-op tool set so Hermes can load and select it.
 *Deliverable: it remembers on its own.*
 
 **Phase 3 — Sleep (self-tending).**
-- `hermes iconic sleep`: reinforce → decay (ordering only) → archive by last use (move-not-delete); consolidate related episodics →
+- `hermes iconic sleep`: reinforce → decay (ordering only) → archive by last use (reversible; deletion is separate); consolidate related episodics →
   semantic; reinforce-on-recall.
 - Cron/idle scheduling + `stats`/`export`/`doctor` CLI + Markdown backup round-trip.
 *Deliverable: it maintains itself.*

@@ -235,10 +235,25 @@ def check_embedder(cfg) -> str | None:
 
 
 def archive_wave_is_safe(store, retention_days: dict) -> tuple[bool, str | None]:
-    """Guard against a retention change retro-archiving a large share of the store."""
+    """Refuse to archive unless last use has really been recorded, and the wave is small.
+
+    Retention reads last use, falling back to creation. If nothing has ever updated that
+    column, every engram carries its creation date and the whole store looks abandoned —
+    which is not evidence of abandonment. A size limit alone does not catch this: a store
+    whose stale share happens to sit under the limit would be archived on a signal that
+    was never written.
+    """
     active = _scalar(store, "SELECT COUNT(*) FROM engram WHERE state='active'") or 0
     if not active:
         return True, None
+    recorded = _scalar(store, "SELECT COUNT(*) FROM engram WHERE state='active' "
+                              "AND last_recalled_at IS NOT NULL "
+                              "AND last_recalled_at > created_at") or 0
+    if not recorded:
+        return False, ("ARCHIVING HELD: no engram has a last-use later than its creation, so the "
+                       "recall path has never recorded one. Retention would be reading a signal "
+                       "that was never written. Confirm recall updates last_recalled_at, then "
+                       "baseline the column, before letting this run")
     doomed = sum(store.unused_since(layer, days) for layer, days in retention_days.items())
     if doomed <= active * ARCHIVE_WAVE_LIMIT:
         return True, None

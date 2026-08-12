@@ -147,6 +147,12 @@ Salience and decay only **order** search results. They do not decide what is kep
 retired — so it can be restored. That is what makes a wrong call recoverable, and it is
 why acting beats hoarding.
 
+**Retiring is not deleting.** Archiving hides a memory from recall and keeps the text, so it
+can come back. That is right for work that has finished, and wrong for something that should
+never have been stored — a secret, personal data, something the human asked you to drop.
+Those need an explicit deletion, which also has to reach the archive copy. Anything already
+written to an export or a backup is outside that reach; say so rather than implying otherwise.
+
 ## Pinning is the only permanent choice
 
 Pin **standing rules, preferences, safety facts** — things that must survive even if

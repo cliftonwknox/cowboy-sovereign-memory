@@ -52,7 +52,7 @@ class Store:
     def add_proposal(self, kind: str, engram_id, target_id, signals: dict) -> None: ...
     def has_conflict(self, a: int, b: int) -> bool: ...
     def add_conflict(self, a: int, b: int, severity: str, detail: str) -> None: ...
-    def counts(self) -> dict: ...
+    def forget(self, engram_id: int) -> bool: ...
     def export_active(self) -> list[dict]: ...
     def close(self) -> None: ...
 
@@ -230,6 +230,19 @@ class SqliteVecStore(Store):
             "INSERT INTO conflict (engram_a,engram_b,severity,detail) VALUES (?,?,?,?)",
             (a, b, severity, detail[:2000]))
         self.conn.commit()
+
+    def forget(self, engram_id: int) -> bool:
+        """Remove a memory outright, including its archive copy.
+
+        Archiving hides a row from recall but keeps the text; that is right for
+        retirement and wrong for something that must not be held at all. Child rows
+        (recall log, links, proposals, conflicts) cascade. Copies already written to an
+        export or a backup are outside this reach and are not claimed.
+        """
+        self.conn.execute("DELETE FROM engram_archive WHERE id=?", (engram_id,))
+        cur = self.conn.execute("DELETE FROM engram WHERE id=?", (engram_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
 
     def counts(self) -> dict:
         rows = self.conn.execute(
@@ -412,6 +425,21 @@ class MariaDBStore(Store):
         cur.execute("INSERT INTO conflict (engram_a,engram_b,severity,detail) VALUES (?,?,?,?)",
                     (a, b, severity, detail[:2000]))
         self.conn.commit()
+
+    def forget(self, engram_id: int) -> bool:
+        """Remove a memory outright, including its archive copy.
+
+        Archiving hides a row from recall but keeps the text; that is right for
+        retirement and wrong for something that must not be held at all. Child rows
+        (recall log, links, proposals, conflicts) cascade. Copies already written to an
+        export or a backup are outside this reach and are not claimed.
+        """
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM engram_archive WHERE id=?", (engram_id,))
+        cur.execute("DELETE FROM engram WHERE id=?", (engram_id,))
+        removed = cur.rowcount > 0
+        self.conn.commit()
+        return removed
 
     def counts(self) -> dict:
         cur = self.conn.cursor()

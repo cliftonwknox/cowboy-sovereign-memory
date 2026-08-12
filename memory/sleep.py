@@ -130,6 +130,25 @@ def detect_conflicts(store, cfg) -> int:
     return made
 
 
+def preview() -> str:
+    """Report what a run would archive, changing nothing.
+
+    Retention decides what is kept, so it must be inspectable before it is trusted —
+    especially on a store whose last-use column may never have been written.
+    """
+    cfg = load()
+    store = open_store(cfg)
+    try:
+        safe, held = maintenance.archive_wave_is_safe(store, RETENTION_DAYS)
+        lines = [f"would archive {layer} {store.unused_since(layer, days)}"
+                 for layer, days in RETENTION_DAYS.items()]
+        lines.append(f"active {store.counts()}")
+        lines.append(held or "wave within limit; retention would run")
+        return " | ".join(lines)
+    finally:
+        store.close()
+
+
 def run() -> str:
     cfg = load()
     store = open_store(cfg)

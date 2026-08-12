@@ -56,6 +56,34 @@ def remember_memory(summary: str, content: str, pinned: bool = False,
 
 
 @server.tool()
+def forget_memory(engram_id: int) -> str:
+    """Remove a memory outright — use when something must not be held at all.
+
+    This is not the same as letting a memory retire. Retirement archives a row: it leaves
+    recall but the text is kept and can be restored. Forgetting deletes it, along with its
+    archive copy and its recall/link/proposal rows.
+
+    Use it for something captured that should never have been stored — a secret, personal
+    data, a fact the human asked to be removed. For memory that is merely finished, do
+    nothing: it retires on its own.
+
+    Copies already written to a markdown export or a database backup are outside this
+    reach and are not claimed to be removed.
+    """
+    from memory.config import load
+    from memory.store import open_store
+    store = open_store(load())
+    try:
+        removed = store.forget(engram_id)
+    finally:
+        store.close()
+    if not removed:
+        return f"No memory {engram_id} to forget."
+    return (f"Forgot engram {engram_id} — row, archive copy and child rows removed. "
+            "Existing exports and backups still contain it.")
+
+
+@server.tool()
 def memory_search(query: str, k: int = 5) -> list:
     """Search your sovereign memory for relevant past facts."""
     return search_text(query, k=k)
