@@ -6,3 +6,11 @@ __pycache__/
 *.pyc
 backup/markdown/
 backup/dumps/
+.env
+models/
+
+# Personal ops: machine-specific backup scripts and their units. They stay on disk
+# and keep running; they are not part of the shipped kit.
+cron/backup_db.py
+cron/backup_repos.py
+cron/systemd/cowboy-repo-backup.*
