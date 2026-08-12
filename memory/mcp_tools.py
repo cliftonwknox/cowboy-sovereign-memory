@@ -17,15 +17,32 @@ server = FastMCP("cowboy-sovereign-memory")
 
 @server.tool()
 def remember_memory(summary: str, content: str, pinned: bool = False,
-                    name_key: str = "") -> str:
-    """Keep a durable fact worth remembering across sessions (judged → semantic layer).
+                    name_key: str = "", layer: str = "semantic") -> str:
+    """Keep something worth remembering across sessions.
+
+    CHOOSE THE LAYER — it decides whether this is permanent:
+
+    - layer="semantic" (default): durable FOREVER. It never decays and is never
+      archived. Use it only for what should still be true in a year — standing
+      rules, preferences, architecture, hard-won lessons.
+    - layer="episodic": ages out on the decay fuse (a few weeks unless recalled).
+      Use it for anything whose meaning carries a date — status, progress, session
+      state, "where we left off", what shipped today.
+
+    If it would read as stale in a month, it is episodic. Writing status into the
+    semantic layer is how a store fills with notes that contradict later reality
+    and can never age out.
 
     Pass name_key (a stable kebab/snake slug) to make the write idempotent:
     re-remembering the same name_key UPDATES that memory (refreshes content/summary/
     embedding) instead of creating a duplicate. Omit it for a fresh memory each call.
+
+    pinned=True exempts a memory from BOTH decay and archiving — standing facts only.
     """
+    if layer not in ("semantic", "episodic"):
+        raise ValueError(f"layer must be 'semantic' or 'episodic', got {layer!r}")
     eid = remember(summary=summary, content=content, pinned=pinned,
-                   name_key=name_key or None)
+                   name_key=name_key or None, layer=layer)
     # The embedder only sees the first EMBED_CAP characters of summary+content, so
     # anything past it is stored but can never be matched by a search. Say so at the
     # moment of the write — silently keeping unsearchable text is the worse failure.
