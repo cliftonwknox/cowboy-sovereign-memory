@@ -79,10 +79,19 @@ def propose_consolidations(store, cfg) -> int:
                          and CONSOLIDATE_LO <= float(S[i, j]) <= CONSOLIDATE_HI]
         if len(cluster) < 3:
             continue
+        # Anchor the proposal to the cluster's seed — one cluster is built per seed,
+        # so it identifies the cluster without colliding with a different one. Without
+        # an anchor the row carries NULL keys, which never collide, so the same cluster
+        # is proposed again every night; and the check must precede the model call,
+        # which is the expensive part.
+        anchor = sem[cluster[0]]["id"]
+        if store.has_proposal("consolidate", anchor):
+            used.update(cluster)
+            continue
         notes = "\n".join(f"- {sem[k]['summary']}: {sem[k]['content'][:200]}" for k in cluster)
         out = dreamer.extract_json_object(dreamer.chat(_CONS_SYS, notes, cfg, max_tokens=300))
         if out.get("summary") and out.get("content"):
-            store.add_proposal("consolidate", None, None,
+            store.add_proposal("consolidate", anchor, None,
                                {"summary": out["summary"], "content": out["content"],
                                 "sources": [sem[k]["id"] for k in cluster]})
             used.update(cluster)
