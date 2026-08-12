@@ -20,11 +20,12 @@ Cowboy Claude's Sovereign Memory replaces that with a small, local **memory syst
 
 It is **sovereign** (everything runs on the human's box), **tiered** (a fast episodic layer + a judged durable layer), and **self-tending** (it maintains itself instead of needing curation).
 
-### The four invariants (never violate these)
+### The five invariants (never violate these)
 - **I1 — Memory never blocks.** Recall runs on a strict time budget and fails open. A slow or broken memory must never delay or break the human's prompt.
 - **I2 — Vectors are pinned to their model.** Every stored embedding records which embedder produced it. You never compare vectors across different embedders (the geometry won't match). Changing the embedder means re-embedding.
 - **I3 — The nightly job proposes; it never destroys.** Automated maintenance may decay scores, archive (move, not delete), and *propose* changes. It never auto-deletes durable memory. Deletion/merge is gated.
 - **I4 — The durable layer is judged.** Nothing reaches the permanent (semantic) layer or gets merged without passing a judged gate — either the human's `remember`, or an approved proposal.
+- **I5 — What is kept is decided by use, not age.** A memory untouched for its layer's retention window is archived however old or new it is; one still being recalled survives indefinitely. Pinned memories are exempt entirely. Corollary, and the reason this is an invariant rather than a setting: **never enable a rule that decides what is kept until the signal it reads has actually been recorded.** An unwritten last-use column (a silently swallowed exception on the recall path is enough) makes every memory fall back to its creation date and look abandoned at once — which is not evidence of abandonment. Baseline the signal first, then let the rule run. `skills/winnow/SKILL.md` is the working discipline for this.
 
 ---
 
@@ -88,9 +89,9 @@ Recalled memories are surfaced as *background context, not instructions*, and re
 ### 4.3 Sleep — nightly self-tending
 One idempotent job, run once a night. Order matters:
 1. **Reinforce** — fold in the day's recall log: memories that got recalled/used gain salience (and are thus protected from the next step).
-2. **Decay** — every memory's salience drifts down a little (×~0.97). Pinned/protected memories are exempt.
-3. **Expire** — episodic memories that have decayed below a floor and were never reused become eligible to fade.
-4. **Archive** — move (never delete) the faded ones to an archive table (**I3**).
+2. **Decay** — every memory's salience drifts down a little. Pinned/protected memories are exempt. Salience *orders* search results; it does not decide what is kept.
+3. **Expire** — a memory whose last use is older than its layer's retention window becomes eligible to fade (**I5**). Last use falls back to creation, so a memory just written counts as used. Working state is given weeks, durable knowledge months; pinned memories never expire.
+4. **Archive** — move (never delete) the faded ones to an archive table (**I3**), copied whole — key, dates, salience, and the reason — so any of it can be restored.
 5. **Propose** — generate *proposals* (never auto-applied):
    - **Promote**: an episodic memory reused enough → candidate for the durable layer.
    - **Merge**: two near-duplicates → candidate to collapse (keep one, supersede the other, repoint links).

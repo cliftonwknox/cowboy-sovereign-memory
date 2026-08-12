@@ -12,6 +12,11 @@ useful, lets the trivial fade, and abstracts recurring details into durable less
   (MariaDB + a 4B dreamer). Pick by your hardware.
 - **Built for Claude to install.** The included skill lets *your* Claude Code instance
   detect your setup, recommend a tier, stand it up, and seed it — conversationally.
+- **Tended, not just filled.** A memory store is not a log. Capture alone degrades it: it
+  raises no errors, it simply becomes harder to find anything in until the answer you
+  need is present but unreachable. The **`winnow`** skill is how your instance keeps it
+  worth having — writing memories that can be found again, and clearing away what has
+  finished so the rest can surface.
 
 ## Status
 
@@ -57,11 +62,26 @@ scripts/install.sh                  # venv + deps + store schema (sqlite-vec)
   `/memory-status`.
 - **`scripts/`** — installer, seeder, and schedulers (systemd / launchd / cron).
 
-## The four invariants
+## The five invariants
 1. **Memory never blocks** (recall is time-bounded + fail-open).
 2. **Vectors are pinned to their embedder** (never compare across embedders).
 3. **The nightly job proposes; it never destroys** (archive = move, not delete).
 4. **The durable layer is judged** (nothing permanent without approval).
+5. **What is kept is decided by use, not age** (a memory still being recalled survives
+   however old; one nothing asks for retires, however recent).
+
+### Why the fifth one changes everything
+
+It means a memory earns its place by being useful, so the good ones need no protection —
+they save themselves by being found. It also means the store depends on two habits, not
+one. Capture is only half; without the other half a store fills with dated notes that
+outlive the work they describe, and an old note claiming to describe the *current* state
+goes on contradicting reality indefinitely.
+
+`skills/winnow/SKILL.md` is that other half, and it carries one rule worth reading before
+you touch any retention setting: **never enable a rule that decides what is kept until the
+signal it reads has actually been recorded.** A signal that was never written makes every
+memory look abandoned at once — which is not evidence of abandonment.
 
 ---
 *Built by a human and his Claude Code instance, as partners. Sovereign by design — yours,
