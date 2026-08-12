@@ -45,6 +45,8 @@ class Store:
     def reinforce(self) -> int: ...
     def decay(self, factor: float = 0.97) -> None: ...
     def expire_and_archive(self, floor: float = 0.2) -> int: ...
+    def unused_since(self, layer: str, days: int) -> int: ...
+    def archive_unused(self, layer: str, days: int) -> int: ...
     def active_with_vectors(self, layer: str) -> list[dict]: ...
     def has_proposal(self, kind: str, engram_id: int) -> bool: ...
     def add_proposal(self, kind: str, engram_id, target_id, signals: dict) -> None: ...
@@ -57,6 +59,12 @@ class Store:
 
 def open_store(cfg) -> "Store":
     return MariaDBStore(cfg) if cfg.store_backend == "mariadb" else SqliteVecStore(cfg)
+
+
+# Same selection as the MariaDB clause below, in SQLite's date dialect.
+_SQLITE_UNUSED_WHERE = ("layer=? AND state='active' AND pinned=0 AND "
+                        "julianday('now') - "
+                        "julianday(COALESCE(last_recalled_at, created_at)) >= ?")
 
 
 # --------------------------------------------------------------------------- #
@@ -164,6 +172,33 @@ class SqliteVecStore(Store):
         self.conn.commit()
         return cur.rowcount
 
+    def unused_since(self, layer: str, days: int) -> int:
+        """How many engrams of `layer` archive_unused would take right now."""
+        return self.conn.execute(
+            f"SELECT COUNT(*) FROM engram WHERE {_SQLITE_UNUSED_WHERE}",
+            (layer, days)).fetchone()[0]
+
+    def archive_unused(self, layer: str, days: int) -> int:
+        """Archive engrams of `layer` untouched for `days`, by LAST USE rather than age.
+
+        A memory earns its place by being used, so an old one that is still recalled
+        stays and a recent one nothing ever asks for does not. Never deletes: the row
+        is copied whole — key, dates and reason included, so it can be restored — and
+        pinned engrams are exempt.
+        """
+        self.conn.execute(
+            "INSERT OR IGNORE INTO engram_archive (id,layer,kind,content,summary,"
+            "embed_model_id,embed_dim,why,scope,scope_ref,origin,source_path,name_key,"
+            "created_at,last_recalled_at,salience,archived_reason) "
+            "SELECT id,layer,kind,content,summary,embed_model_id,embed_dim,why,scope,"
+            "scope_ref,origin,source_path,name_key,created_at,last_recalled_at,salience,"
+            f"'unused for '||?||'+ days' FROM engram WHERE {_SQLITE_UNUSED_WHERE}",
+            (days, layer, days))
+        cur = self.conn.execute(
+            f"UPDATE engram SET state='archived' WHERE {_SQLITE_UNUSED_WHERE}", (layer, days))
+        self.conn.commit()
+        return cur.rowcount
+
     def active_with_vectors(self, layer: str) -> list[dict]:
         rows = self.conn.execute(
             "SELECT e.id, e.summary, e.content, e.salience, e.created_at, "
@@ -214,6 +249,14 @@ class SqliteVecStore(Store):
 # --------------------------------------------------------------------------- #
 # MariaDB >= 11.7 native VECTOR (power option)
 # --------------------------------------------------------------------------- #
+
+# Selects one layer's unpinned engrams that nothing has touched in N days. Last use
+# falls back to creation, so a memory just written counts as used. Placeholders are
+# (layer, days); TIMESTAMPDIFF takes them where INTERVAL ? DAY will not.
+_UNUSED_WHERE = ("layer=? AND state='active' AND pinned=0 AND "
+                 "TIMESTAMPDIFF(DAY, COALESCE(last_recalled_at, created_at), NOW()) >= ?")
+
+
 class MariaDBStore(Store):
     def __init__(self, cfg):
         import mariadb
@@ -302,6 +345,34 @@ class MariaDBStore(Store):
                     f"SELECT id,layer,kind,content,summary,embed_model_id,embed_dim,salience,origin "
                     f"FROM engram WHERE {where}", (floor,))
         cur.execute(f"UPDATE engram SET state='archived' WHERE {where}", (floor,))
+        n = cur.rowcount
+        self.conn.commit()
+        return n
+
+    def unused_since(self, layer: str, days: int) -> int:
+        """How many engrams of `layer` archive_unused would take right now."""
+        cur = self.conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM engram WHERE {_UNUSED_WHERE}", (layer, days))
+        return cur.fetchone()[0]
+
+    def archive_unused(self, layer: str, days: int) -> int:
+        """Archive engrams of `layer` untouched for `days`, by LAST USE rather than age.
+
+        A memory earns its place by being used, so an old one that is still recalled
+        stays and a recent one nothing ever asks for does not. Never deletes: the row
+        is copied whole — key, dates and reason included, so it can be restored — and
+        pinned engrams are exempt.
+        """
+        cur = self.conn.cursor()
+        cur.execute(
+            "INSERT IGNORE INTO engram_archive (id,layer,kind,content,summary,"
+            "embed_model_id,embed_dim,why,scope,scope_ref,origin,source_path,name_key,"
+            "created_at,last_recalled_at,salience,archived_reason) "
+            "SELECT id,layer,kind,content,summary,embed_model_id,embed_dim,why,scope,"
+            "scope_ref,origin,source_path,name_key,created_at,last_recalled_at,salience,"
+            f"CONCAT('unused for ',?,'+ days') FROM engram WHERE {_UNUSED_WHERE}",
+            (days, layer, days))
+        cur.execute(f"UPDATE engram SET state='archived' WHERE {_UNUSED_WHERE}", (layer, days))
         n = cur.rowcount
         self.conn.commit()
         return n

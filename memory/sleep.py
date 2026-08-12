@@ -19,10 +19,14 @@ MERGE_COS = 0.98
 CONSOLIDATE_LO, CONSOLIDATE_HI = 0.85, 0.97
 CONFLICT_COS = 0.84
 
-# Unrecalled episodic memory reaches the archive floor in ~3 weeks; a single
-# recall buys back several nights, so use outlives age.
+# What is kept is decided by LAST USE, not by age: a memory nothing has asked for
+# in this many days is archived, while one still being recalled stays however old
+# it is. Working state goes quiet quickly; durable knowledge is allowed to sit
+# unused far longer before it is treated as dead. Pinned engrams never archive.
+RETENTION_DAYS = {"episodic": 21, "semantic": 90}
+
+# Salience only orders search results now — recency and reinforcement shape ranking.
 DECAY_FACTOR = 0.95
-ARCHIVE_FLOOR = 0.35
 
 _CONS_SYS = ("Several related memory notes follow. Synthesize ONE durable lesson that "
              'captures them. Output ONLY JSON: {"summary": one sentence, "content": '
@@ -131,12 +135,15 @@ def run() -> str:
     store = open_store(cfg)
     try:
         log = [f"reinforced {store.reinforce()}"]
+        # Salience still orders results; it no longer decides what is kept.
         store.decay(DECAY_FACTOR)
         log.append("decayed")
-        # A wave far larger than a night's natural staleness means a tunable moved,
-        # so hold the archive and report rather than acting on it.
-        safe, held = maintenance.archive_wave_is_safe(store, ARCHIVE_FLOOR, DECAY_FACTOR)
-        log.append(f"archived {store.expire_and_archive(ARCHIVE_FLOOR)}" if safe else "archive HELD")
+        # A wave far larger than a night's natural staleness means a retention window
+        # moved, so hold the archive and report rather than acting on it.
+        safe, held = maintenance.archive_wave_is_safe(store, RETENTION_DAYS)
+        for layer, days in RETENTION_DAYS.items():
+            log.append(f"archived {layer} {store.archive_unused(layer, days)}" if safe
+                       else f"archive {layer} HELD")
         log.append(f"promotions {propose_promotions(store)}")
         log.append(f"merges {propose_merges(store)}")
         log.append(f"consolidations {propose_consolidations(store, cfg)}")

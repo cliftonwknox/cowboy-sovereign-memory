@@ -235,19 +235,18 @@ def check_embedder(cfg) -> str | None:
     return None
 
 
-def archive_wave_is_safe(store, floor: float, factor: float) -> tuple[bool, str | None]:
-    """Guard against a tunable change retro-archiving a large share of the store."""
+def archive_wave_is_safe(store, retention_days: dict) -> tuple[bool, str | None]:
+    """Guard against a retention change retro-archiving a large share of the store."""
     active = _scalar(store, "SELECT COUNT(*) FROM engram WHERE state='active'") or 0
     if not active:
         return True, None
-    doomed = _scalar(store, "SELECT COUNT(*) FROM engram WHERE layer='episodic' "
-                            "AND state='active' AND pinned=0 AND salience*?<?",
-                     (factor, floor)) or 0
+    doomed = sum(store.unused_since(layer, days) for layer, days in retention_days.items())
     if doomed <= active * ARCHIVE_WAVE_LIMIT:
         return True, None
     return False, (f"ARCHIVING HELD: this run would archive {doomed} of {active} active "
                    f"engrams ({doomed / active:.0%}), over the {ARCHIVE_WAVE_LIMIT:.0%} "
-                   "limit. Re-baseline salience or lower the floor deliberately")
+                   "limit. A retention window moved, or last-use was never recorded — "
+                   "baseline last_recalled_at before letting this run")
 
 
 # --------------------------------------------------------------------------- #
