@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from memory import dreamer
+from memory import dreamer, maintenance
 from memory.config import load
 from memory.store import open_store
 
@@ -18,6 +18,11 @@ PROMOTE_SALIENCE = 1.5
 MERGE_COS = 0.98
 CONSOLIDATE_LO, CONSOLIDATE_HI = 0.85, 0.97
 CONFLICT_COS = 0.84
+
+# Unrecalled episodic memory reaches the archive floor in ~3 weeks; a single
+# recall buys back several nights, so use outlives age.
+DECAY_FACTOR = 0.95
+ARCHIVE_FLOOR = 0.35
 
 _CONS_SYS = ("Several related memory notes follow. Synthesize ONE durable lesson that "
              'captures them. Output ONLY JSON: {"summary": one sentence, "content": '
@@ -112,15 +117,20 @@ def run() -> str:
     store = open_store(cfg)
     try:
         log = [f"reinforced {store.reinforce()}"]
-        # Unrecalled episodic memory reaches the archive floor in ~3 weeks; a
-        # single recall buys back several nights, so use outlives age.
-        store.decay(0.95); log.append("decayed")
-        log.append(f"archived {store.expire_and_archive(0.35)}")
+        store.decay(DECAY_FACTOR)
+        log.append("decayed")
+        # A wave far larger than a night's natural staleness means a tunable moved,
+        # so hold the archive and report rather than acting on it.
+        safe, held = maintenance.archive_wave_is_safe(store, ARCHIVE_FLOOR, DECAY_FACTOR)
+        log.append(f"archived {store.expire_and_archive(ARCHIVE_FLOOR)}" if safe else "archive HELD")
         log.append(f"promotions {propose_promotions(store)}")
         log.append(f"merges {propose_merges(store)}")
         log.append(f"consolidations {propose_consolidations(store, cfg)}")
         log.append(f"conflicts {detect_conflicts(store, cfg)}")
         log.append(f"active {store.counts()}")
-        return " | ".join(log)
+
+        stats = " | ".join(log)
+        summary, items = maintenance.run(store, cfg, stats=f"STATS: {stats}", held=held)
+        return "\n".join([stats, summary, *(f"  * {i}" for i in items)])
     finally:
         store.close()
