@@ -166,11 +166,13 @@ class SqliteVecStore(Store):
 
     def active_with_vectors(self, layer: str) -> list[dict]:
         rows = self.conn.execute(
-            "SELECT e.id, e.summary, e.content, e.salience, vec_to_json(v.embedding) AS emb "
+            "SELECT e.id, e.summary, e.content, e.salience, e.created_at, "
+            "vec_to_json(v.embedding) AS emb "
             "FROM engram e JOIN vec_engram v ON v.rowid=e.id "
             "WHERE e.layer=? AND e.state='active'", (layer,)).fetchall()
         return [{"id": r["id"], "summary": r["summary"], "content": r["content"],
-                 "salience": r["salience"], "embedding": json.loads(r["emb"])} for r in rows]
+                 "salience": r["salience"], "created_at": r["created_at"],
+                 "embedding": json.loads(r["emb"])} for r in rows]
 
     def has_proposal(self, kind, engram_id) -> bool:
         return self.conn.execute(
@@ -306,10 +308,12 @@ class MariaDBStore(Store):
 
     def active_with_vectors(self, layer: str) -> list[dict]:
         cur = self.conn.cursor(dictionary=True)
-        cur.execute("SELECT id, summary, content, salience, VEC_ToText(embedding) AS emb "
+        cur.execute("SELECT id, summary, content, salience, created_at, "
+                    "VEC_ToText(embedding) AS emb "
                     "FROM engram WHERE layer=? AND state='active'", (layer,))
         return [{"id": r["id"], "summary": r["summary"], "content": r["content"],
-                 "salience": r["salience"], "embedding": json.loads(r["emb"])}
+                 "salience": r["salience"], "created_at": r["created_at"],
+                 "embedding": json.loads(r["emb"])}
                 for r in cur.fetchall()]
 
     def has_proposal(self, kind, engram_id) -> bool:

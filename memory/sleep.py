@@ -27,7 +27,11 @@ ARCHIVE_FLOOR = 0.35
 _CONS_SYS = ("Several related memory notes follow. Synthesize ONE durable lesson that "
              'captures them. Output ONLY JSON: {"summary": one sentence, "content": '
              'two or three sentences}.')
-_CONF_SYS = ("Two memory notes follow. Decide whether they CONTRADICT (not merely differ). "
+_CONF_SYS = ("Two dated memory notes follow. Decide whether they CONTRADICT (not merely "
+             "differ). These notes record work over time, so the later note usually "
+             "SUPERSEDES the earlier one: a plan that changed, a later stage of the same "
+             "task, or a status that advanced is NOT a contradiction. Answer true only if "
+             "both cannot have been true when they were written. "
              'Output ONLY JSON: {"contradict": boolean, "severity": "high"|"medium"|"low", '
              '"detail": string}.')
 
@@ -111,7 +115,8 @@ def detect_conflicts(store, cfg) -> int:
         for j in range(i + 1, len(sem)):
             if float(S[i, j]) < CONFLICT_COS or store.has_conflict(sem[i]["id"], sem[j]["id"]):
                 continue
-            note = f"NOTE 1: {sem[i]['summary']}\nNOTE 2: {sem[j]['summary']}"
+            note = (f"NOTE 1 ({str(sem[i]['created_at'])[:10]}): {sem[i]['summary']}\n"
+                    f"NOTE 2 ({str(sem[j]['created_at'])[:10]}): {sem[j]['summary']}")
             v = dreamer.extract_json_object(dreamer.chat(_CONF_SYS, note, cfg, max_tokens=200))
             if v.get("contradict"):
                 sev = v.get("severity", "medium")
