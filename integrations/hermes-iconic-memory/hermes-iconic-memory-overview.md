@@ -11,7 +11,9 @@ total) that the agent hand-edits and that are frozen into the system prompt at t
 session. It's fine for "who you are," but it doesn't grow, doesn't recall by meaning, and only
 remembers what the agent manually writes down.
 
-**Hermes Iconic Memory** is a drop-in replacement that gives Hermes a real memory:
+**Hermes Iconic Memory** runs alongside those files and gives Hermes a real memory. Native memory
+stays as the bounded, always-injected identity and bootstrap layer; Iconic is the unbounded corpus
+injected by relevance:
 
 - It **remembers on its own** — a small local model reads each session and extracts the durable facts.
 - It **recalls by meaning** — every turn, it semantically searches what it knows and surfaces what's
@@ -68,7 +70,7 @@ it's the freshest tier that feeds everything else.
 ## 4. Implementation plan
 
 **Phase 0 — Scaffold (plugin skeleton).**
-Create `plugins/memory/hermes-iconic-memory/` with `plugin.yaml`, `__init__.py` (the
+Create the provider package with `plugin.yaml`, `__init__.py` (the
 `MemoryProvider` subclass + `register()`), README. Wire `name`, `is_available`, `initialize`, and a
 no-op tool set so Hermes can load and select it.
 

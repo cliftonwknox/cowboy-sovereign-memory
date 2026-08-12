@@ -1,25 +1,25 @@
-# Hermes Iconic Memory — v2.0
+# Hermes Iconic Memory — v2.1
 
 **Real, self-managing memory for [Hermes Agent](https://github.com/NousResearch/hermes-agent) —
 local, private, drop-in.**
 
-> **What changed in v2.0.** The design now matches an engine that has been run in anger rather than
-> only reasoned about. **What a store keeps is decided by last use, not age** — a memory still being
-> recalled survives however old it is, and one nothing asks for retires however recent. Alongside it:
-> the law that makes that safe to switch on (*never enable a rule that decides what is kept until the
-> signal it reads has actually been recorded*), a nightly deterministic self-check, the embed-cap
-> discipline that keeps written text findable at all, and **`winnow-SKILL.md`** — the care discipline,
-> now a shipped file rather than a paragraph. See `CHANGELOG.md`.
+> **v2.1 — the integration and lifecycle pass.** v2.0 corrected the *memory model*: what a store
+> keeps is decided by **last use, not age**, guarded by the law that you never enable a rule deciding
+> what is kept until the signal it reads has actually been recorded. v2.1 corrects the parts that
+> decide whether it is safe to *install*: **profile and per-user isolation**, the real provider
+> discovery path and activation, **retention off until proven**, a **durable extraction queue**,
+> **coexistence** with native memory instead of replacing it, and **deletion** separated from
+> archival. The care discipline ships as **`winnow-SKILL.md`**. See `CHANGELOG.md`.
 
 Hermes' built-in memory is a pair of small text files (~1,300 tokens) the agent hand-edits and that
-are frozen into the prompt at session start. Iconic Memory replaces that with a memory that
+are frozen into the prompt at session start. Iconic Memory runs alongside them and adds a memory that
 **remembers on its own**, **recalls by meaning**, and **tends itself** — all on your machine, with a
 single database file and no GPU required.
 
 - 🧠 **Auto-capture** — a small local model reads each session and extracts the durable facts.
 - 🔎 **Semantic recall** — every turn it surfaces what's *relevant*, instead of one frozen block.
-- 🌙 **Self-tending** — unused memories fade, related ones merge, important ones persist, nothing is
-  deleted (archived instead).
+- 🌙 **Self-tending** — what nothing asks for retires, related memories merge, important ones persist.
+  Retirement **archives** (reversible); deleting for real is a separate, explicit operation.
 - 🔌 **Drop-in** — a standard Hermes `MemoryProvider` plugin. No fork; remove it and native memory is
   untouched.
 - 🏠 **Local & private** — your data stays in your own DB; nothing leaves the machine.
@@ -91,8 +91,9 @@ no lecture.
 
 ## Status
 
-Design complete and grounded against both source systems (Hermes' memory + plug-in seam, and the
-Cowboy-Memory prototype). The install runbook's preflight has been dry-run-verified on Linux.
-Not yet built — see Design §6 for phasing (v1 = store + recall + auto-capture + sleep-core).
+Design, not an installation guide. The memory model is grounded in a running engine; the Hermes
+integration points are read from source, but nothing here has been built or installed yet. The
+install commands are POSIX/Linux; the preflight's macOS and Windows paths are best-effort and
+unverified. Build order in Design §6.
 
 *Built by Cowboy Claude with Clifton Knox.*

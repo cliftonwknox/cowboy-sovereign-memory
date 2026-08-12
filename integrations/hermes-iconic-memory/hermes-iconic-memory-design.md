@@ -83,7 +83,8 @@ Two engines (embedder, dreamer) on CPU; one store. That's the shape we slim for 
 
 ### 3.1 Shape
 A single Python package shipped as a Hermes memory-provider plugin
-(`plugins/memory/hermes-iconic-memory/`). It carries the Cowboy engine internally but **in-process**
+(`$HERMES_HOME/plugins/hermes-iconic-memory/` when user-installed; `plugins/memory/<name>/` when
+bundled). It carries the Cowboy engine internally but **in-process**
 and **single-binary-friendly** — no socket servers required for the default install.
 
 ### 3.2 Three tiers (honoring the name)
@@ -93,10 +94,49 @@ and **single-binary-friendly** — no socket servers required for the default in
 - **Semantic** — consolidated, reinforced, long-term facts (DB, `layer=semantic`), the recall core.
 Promotion flows iconic → (dreamer extract) → episodic → (sleep consolidate) → semantic.
 
+### 3.2a Isolation — whose memory is this?
+
+Two boundaries have to hold, and neither is optional once this runs anywhere but one laptop.
+
+**Profile isolation — never hard-code a home.** Every path derives from the `hermes_home` handed to
+`initialize()`:
+
+```
+$HERMES_HOME/iconic/memory.db
+$HERMES_HOME/iconic/config.yaml
+$HERMES_HOME/iconic/models/
+```
+
+A fixed `~/.hermes` makes separate profiles share one database, silently. Profiles exist precisely to
+keep state apart, so a provider that ignores the passed home defeats them.
+
+**Caller isolation — a store serving a gateway serves several people.** When Hermes runs as a
+gateway, one process handles many users, channels and workspaces. A single global store with no scope
+columns will surface one person's memory inside another person's conversation. That is a privacy
+failure, not a ranking bug, and no amount of recall tuning fixes it.
+
+Every row carries a scope, and **every read and write is predicated on it**:
+
+| Column | Holds |
+|---|---|
+| `agent_identity` | which agent the memory belongs to |
+| `agent_workspace` | the working context it was formed in |
+| `platform` | the surface it arrived through |
+| `user_id` | stable identifier for the person, where one exists |
+| `conversation_id` | optional narrower scope for group or tenant separation |
+
+The default is the narrowest scope that fits the deployment: single-user CLI collapses to one scope
+and costs nothing; a gateway must set them. **Sharing across scopes is explicit or it does not
+happen** — there is no implicit widening, and a missing scope predicate is a bug, not a default.
+
+A scope filter belongs in the SQL, not in post-filtering after ranking: a vector search that ranks
+across everyone and then discards the wrong rows has already leaked them into the ordering, and will
+return fewer results than asked for.
+
 ### 3.3 Stack (per the spec, friend-optimized)
 - **Database — pluggable, SQLite default / MariaDB option.** A thin `store` interface with two
   backends:
-  - **SQLite (default, zero-ops):** single file at `~/.hermes/iconic/memory.db`. Vectors via the
+  - **SQLite (default, zero-ops):** single file at `$HERMES_HOME/iconic/memory.db`. Vectors via the
     **`sqlite-vec`** extension when present; **graceful fallback** to an in-process NumPy cosine over
     the (bounded, pinned-in-RAM) active set when it isn't — friends install nothing.
   - **MariaDB (opt-in):** native `VECTOR` + `VEC_DISTANCE_COSINE`, for large corpora / multi-agent /
@@ -116,14 +156,18 @@ Promotion flows iconic → (dreamer extract) → episodic → (sleep consolidate
   return a compact recall block. `system_prompt_block()` seeds the session with the top-K
   semantic/pinned facts, **char-bounded** to respect Hermes' frozen-snapshot + prefix cache.
 - **Capture (auto).** `sync_turn` pushes each turn into the iconic ring (cheap). `on_session_end`
-  (and `on_delegation`) fire the **dreamer** detached: extract durable facts from the session →
-  dedup-write to episodic. `on_pre_compress` salvages salient facts before context is dropped so
-  compaction never loses memory. **No turn ever waits on the dreamer.**
-- **Active tools.** `remember(text, [layer], [pin])`, `recall(query)`, `forget(id)`, `pin(id)` via
-  `get_tool_schemas`/`handle_tool_call` — the agent (and user) can write/curate directly, on top of
-  auto-capture.
+  and `on_delegation` **enqueue** an extraction job and return; a worker runs the dreamer and
+  dedup-writes to episodic (see 3.4e). **No turn ever waits on the dreamer**, and no capture is lost
+  if the process exits.
+- **Active tools.** `iconic_remember(text, [layer], [pin])`, `iconic_recall(query)`,
+  `iconic_archive(id)`, `iconic_restore(id)`, `iconic_forget(id)`, `iconic_pin(id)` via
+  `get_tool_schemas`/`handle_tool_call`. Names are provider-owned: bare `remember` / `recall` /
+  `forget` are broad enough to collide with another provider or a future core tool, and the losing
+  side of a collision fails in ways that are hard to attribute. The skill can speak in the short
+  conceptual verbs while calling these.
 - **Sleep (maintenance).** `hermes iconic sleep` (run by cron or on idle): reinforce from the recall
-  log → decay (ordering only) → **archive by last use** (move-not-delete) → consolidate episodic
+  log → decay (ordering only) → **archive by last use, only when retention is enabled**
+  (move-not-delete; see 3.4a) → consolidate episodic
   clusters [0.85, 0.97] → semantic via the dreamer → dreamer-judged promote/merge + conflict-detect
   → **self-check** (below).
 
@@ -186,11 +230,92 @@ about, checked **before** the expensive model call rather than after. Rows keyed
 never collide, so a de-duplicating index silently does nothing and the same work is proposed again
 every night.
 
+### 3.4e Extraction is a durable queue, not a detached process
+
+A lifecycle hook that spawns background inference and returns has put the only copy of its input in
+RAM, in a process that is about to exit. Session end, delegation and compression are exactly the
+moments the process is most likely to go away.
+
+So the hook's job is to **persist the work, not to do it**:
+
+1. Serialize a bounded extraction input to the store **before returning from the hook**.
+2. Key the job by `(source_session, event_type, content_digest)` so the same input cannot enqueue
+   twice.
+3. Track state: `pending → leased → completed | failed`.
+4. A worker leases, runs the dreamer, and writes results **idempotently** — replaying a completed job
+   changes nothing.
+5. Retry transient failures with bounded backoff; recover expired leases on startup, since a lease
+   held by a dead process must not strand its job forever.
+6. `on_session_switch()` flushes the outgoing session's ring; `shutdown()` checkpoints rather than
+   abandons.
+
+**`on_pre_compress` is the exception that must be synchronous.** Its whole purpose is to save what is
+about to be dropped. Enqueuing and returning does not preserve anything if compression proceeds
+immediately — the input is gone before the worker wakes. Whatever must survive compression is written
+inside the hook, within its return contract; anything richer can be enqueued *in addition*.
+
+### 3.4f Coexistence — Iconic is additive, not a replacement
+
+An external provider runs **alongside** native memory. `MEMORY.md` and `USER.md` keep being written
+and keep being injected at session start. Describing Iconic as "replacing" them invites a store that
+silently disagrees with the block already in the prompt.
+
+Give each a job, and say which wins:
+
+| Layer | Owns | Authority |
+|---|---|---|
+| `USER.md` | stable identity and preferences that must always be present | authoritative for identity |
+| `MEMORY.md` | compact environment facts, and how to recover the provider | authoritative for bootstrap |
+| Iconic | the scalable corpus: episodic capture, semantic consolidation, tending | authoritative for everything it holds |
+
+Native memory is **bounded and always injected**; Iconic is **unbounded and injected by relevance**.
+That is the split — not "old versus new".
+
+Mirroring native writes into Iconic is a decision to make explicitly, not to leave implicit. If
+mirrored, each mirrored row carries provenance and a stable key so re-mirroring updates rather than
+duplicates. If not mirrored, the two can disagree, and the recall block must not present an Iconic
+fact as though it overrode the frozen native block. **Pick one and write it down.**
+
+### 3.4g Archival and deletion are different operations
+
+"Nothing is ever deleted" is the right promise for *retirement*. It is the wrong promise for a
+secret that was captured by accident, personal data that must go, or a fact the user has asked to be
+forgotten. Archival hides a row from recall; it does not remove it from the database, the exports, or
+the backups.
+
+Three distinct operations:
+
+- **`archive(id)`** — reversible retirement. The row moves out of the active set, whole, and can come
+  back.
+- **`restore(id)`** — return an archived memory to active.
+- **`forget(id)`** — authoritative removal. Not reversible, and it must reach everywhere the content
+  went.
+
+`forget` has to name its blast radius, or it is a false promise:
+
+| Reaches | Because |
+|---|---|
+| the primary row | the obvious one |
+| the vector index | an orphaned vector still matches and still ranks |
+| consolidated descendants | a summary may carry the content forward verbatim |
+| conflict and proposal records | these quote the text they were filed about |
+| markdown exports | plain-text copies outlive the database |
+| backups | state the retention window honestly rather than implying reach the design does not have |
+
+A tombstone may record **that** a deletion happened, with a timestamp and scope, without keeping what
+was deleted — enough for an audit trail, nothing more. Anything the design cannot actually purge
+(existing backups, an export a user already copied) must be **stated as a limitation**, not quietly
+omitted.
+
 ### 3.5 Config, CLI, ops
-- `get_config_schema()`: `db_backend` (sqlite|mariadb), `db_path`/DSN, `embedder` (fastembed|llama),
+- `get_config_schema()`: **`retention.enabled` (default `false`)** and its per-layer idle windows,
+  scope defaults (identity / workspace / platform / user), `db_backend` (sqlite|mariadb), `db_path`/DSN,
+  `embedder` (fastembed|llama),
   `dreamer_model_path`, `cpu_affinity`, recall weights + budget, decay + cluster thresholds, iconic
   ring size, sleep schedule.
-- `register_cli`: `hermes iconic sleep | stats | export | import | doctor | reembed`.
+- `register_cli`: `hermes iconic sleep | stats | export | import | doctor | reembed | restore`.
+  `sleep` takes `--dry-run` and `--reinforce-only`, so instrumentation can be proven without running
+  a stage that archives.
 - **Backup:** round-trippable **markdown export/import** (Cowboy's pattern) — friends can read, edit,
   and version their memory in plain text.
 - **Failure posture:** `is_available()` does no network; missing dreamer/embedder degrades to

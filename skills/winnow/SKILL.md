@@ -35,7 +35,7 @@ between them and both rank worse than the single memory would have.
 
 | | `semantic` | `episodic` |
 |---|---|---|
-| Lifecycle | **durable** — the long-lived layer | ages out when unused |
+| Lifecycle | **long-lived** — a long idle window; archivable unless pinned | ages out when unused |
 | Holds | standing rules, preferences, architecture, lessons | status, progress, session state, what shipped |
 
 **The test: would this read as stale in a month? Then it is episodic.**
@@ -225,7 +225,8 @@ being checked"* stays.
 
 ## Never leave two memories claiming to be current
 
-A durable memory never ages out on its own, so a stale one misleads indefinitely.
+A durable memory is long-lived — it outlives working state by months and only retires after a
+long idle window — so a stale one misleads for a long time before anything reclaims it.
 
 Watch for an older memory that still announces itself as `CURRENT` while a later one
 reverses the practice it describes. Nothing retires the older one, so it goes on
