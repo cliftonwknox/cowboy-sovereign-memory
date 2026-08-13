@@ -1,5 +1,30 @@
 # Changelog — Hermes Iconic Memory
 
+## v2.2 — 2026-08-13
+
+The first corrections to come from a real installation rather than from reading source.
+Everything before this was inferred; these three items were observed.
+
+### Fixed — the CLI verbs were written as though the name were fixed
+
+The runbook used `hermes iconic <verb>` throughout. The subcommand name is whatever the
+plugin passes to `register_cli_command(name=...)`, so a build registering under the full
+plugin name answers to `hermes hermes-iconic-memory <verb>`, and a provider routed through
+memory discovery may register no CLI command at all. The runbook now states the dependency
+and says to confirm with `hermes --help` before scripting any of it.
+
+### Documented — discovery reads only the first 8 KB
+
+The provider scan reads `__init__.py` truncated to 8192 characters. A `MemoryProvider`
+subclass declared below a long licence header or import block is not seen, and the plugin
+is skipped in silence — the failure the scan was already warned about, with its actual cause.
+
+### Confirmed — both discovery markers work
+
+Discovery accepts `register_memory_provider` **or** a `MemoryProvider` subclass; either is
+sufficient, and the subclass is the cleaner of the two. This matched the pack as written.
+
+
 ## v2.1 — 2026-08-12
 
 v2.0 corrected the memory model. This revision corrects the parts that decide whether it is safe to

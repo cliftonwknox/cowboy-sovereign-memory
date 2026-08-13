@@ -1,4 +1,4 @@
-# Hermes Iconic Memory — v2.1
+# Hermes Iconic Memory — v2.2
 
 **Real, self-managing memory for [Hermes Agent](https://github.com/NousResearch/hermes-agent) —
 local, private, drop-in.**
@@ -9,7 +9,12 @@ local, private, drop-in.**
 > decide whether it is safe to *install*: **profile and per-user isolation**, the real provider
 > discovery path and activation, **retention off until proven**, a **durable extraction queue**,
 > **coexistence** with native memory instead of replacing it, and **deletion** separated from
-> archival. The care discipline ships as **`winnow-SKILL.md`**. See `CHANGELOG.md`.
+> archival. The care discipline ships as **`winnow-SKILL.md`**.
+>
+> **v2.2 — the first field pass.** Folds in
+> corrections from the first real installation: the CLI subcommand name is chosen by the plugin
+> rather than fixed, and provider discovery reads only the first 8 KB of `__init__.py`.
+> See `CHANGELOG.md`.
 
 Hermes' built-in memory is a pair of small text files (~1,300 tokens) the agent hand-edits and that
 are frozen into the prompt at session start. Iconic Memory runs alongside them and adds a memory that
@@ -92,8 +97,10 @@ no lecture.
 
 ## Status
 
-Design, not an installation guide. The memory model is grounded in a running engine; the Hermes
-integration points are read from source, but nothing here has been built or installed yet. The
+Design, not an installation guide. The memory model is grounded in a running engine, and the
+Hermes integration points are read from source. One person has since built a provider from this
+pack and installed it — the corrections that came back are in v2.2 — but the pack itself still
+ships no code. The
 install commands are POSIX/Linux; the preflight's macOS and Windows paths are best-effort and
 unverified. Build order in Design §6.
 

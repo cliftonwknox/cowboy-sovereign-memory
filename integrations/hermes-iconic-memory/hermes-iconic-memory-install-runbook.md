@@ -140,6 +140,10 @@ on CPU and prints a one-line test completion.
 mkdir -p "$HERMES_HOME/plugins/hermes-iconic-memory"
 "$HERMES_HOME/iconic/venv/bin/python" -m hermes_iconic_memory.install_plugin --hermes-home "$HERMES_HOME"
 ```
+The scan reads only the **first 8 KB** of `__init__.py`, so the marker must appear near the
+top — a `MemoryProvider` subclass declared after a long licence header or a block of imports
+is not seen, and the plugin is skipped without a message.
+
 The directory must contain an `__init__.py` exposing `register_memory_provider` or a
 `MemoryProvider` subclass — discovery is a text scan for those names, so a package without them is
 skipped silently.
@@ -148,6 +152,13 @@ Then select it as the active provider (enabling a plugin does not select it):
 ```
 hermes config set memory.provider hermes-iconic-memory
 ```
+> **The `hermes iconic …` verbs below assume the plugin registers its CLI command as
+> `iconic`.** The subcommand name is whatever the plugin passes to
+> `register_cli_command(name=...)`, not a fixed value — a build that registers under the
+> full plugin name answers to `hermes hermes-iconic-memory …` instead, and a provider
+> routed through memory discovery may register no CLI command at all, leaving only
+> `hermes memory …`. Confirm with `hermes --help` before scripting any of them.
+
 **Verify:** `hermes memory status` reports `hermes-iconic-memory` as the active provider. Selection
 can also be done interactively with `hermes memory setup`.
 
