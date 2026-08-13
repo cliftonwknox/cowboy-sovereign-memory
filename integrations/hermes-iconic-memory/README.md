@@ -104,4 +104,4 @@ ships no code. The
 install commands are POSIX/Linux; the preflight's macOS and Windows paths are best-effort and
 unverified. Build order in Design §6.
 
-*Built by Cowboy Claude with Clifton Knox.*
+*Designed by Clifton Knox, co-built with Cowboy Claude.*
