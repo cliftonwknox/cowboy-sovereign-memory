@@ -43,10 +43,10 @@ Run these and record the numbers. Pick the right command for the OS.
 
 | Resource | 🟢 Good | 🟡 Marginal | 🔴 No-go for full mode |
 |---|---|---|---|
-| Total RAM | ≥ 8 GB | 6–8 GB | < 4 GB |
-| Free RAM (at install time) | ≥ 4 GB | 2.5–4 GB | < 2.5 GB |
+| Total RAM | ≥ 12 GB | 8–12 GB | < 8 GB |
+| Free RAM (at install time) | ≥ 6 GB | 4.5–6 GB | < 4.5 GB |
 | CPU | ≥ 4 modern cores (≥2 GHz x86-64, Apple Silicon, or recent ARM) | 2 cores | single old core / low-power mobile |
-| Free disk | ≥ 3 GB | 2–3 GB | < 2 GB |
+| Free disk | ≥ 7 GB | 5–7 GB | < 5 GB |
 | Python | 3.11+ | 3.11+ | < 3.11 |
 
 **What "marginal/no-go" actually means (use this to brief honestly, not to scare):**
@@ -63,7 +63,8 @@ Run these and record the numbers. Pick the right command for the OS.
 **Downloads the install will pull (state these to the human up front):**
 - Python deps (fastembed/onnxruntime, numpy, the plugin) — tens of MB.
 - The embedder model `bge-small-en-v1.5` (ONNX) — **~130 MB**, fetched on first use.
-- Full mode only: the dreamer model `gemma-2-2b-it` (Q4_K_M GGUF) — **~1.7 GB**.
+- Full mode only: the dreamer model Gemma 4 E2B, the 2B size of Gemma 4: **~3.1 GB** as the
+  `gemma-4-E2B-it` Q4_K_M GGUF, or **~4.6 GB** through Ollama (`gemma4:e2b`).
 
 ---
 
@@ -81,7 +82,7 @@ own and recalls by meaning. It runs entirely on your machine. Here's the quick c
    but it never slows your chats" / "not enough free RAM for the 2B model, so I'd skip the
    auto-extractor and run recall-only — still fully useful">
 
-  Will download:  ~130 MB embedder<, and ~1.7 GB for the 2B dreamer model> (one time)
+  Will download:  ~130 MB embedder<, and ~3–4.6 GB for the 2B dreamer model> (one time)
   Footprint:      one local database file in $HERMES_HOME/iconic/ — nothing leaves your machine
 
 Want me to go ahead with <full mode | recall-only mode>?  (yes / no / tell me more)
@@ -119,20 +120,21 @@ Choose the path you'll record in config:
 **Path A — Ollama (recommended for friends; handles the download, license, and CPU serving):**
 ```
 # install ollama if absent: https://ollama.com/download
-ollama pull gemma2:2b
+ollama pull gemma4:e2b
 ```
-**Verify:** `ollama list | grep gemma2:2b` shows the model. CPU-pin it in config (3.5) via the ollama
+**Verify:** `ollama list | grep gemma4:e2b` shows the model. CPU-pin it in config (3.5) via the ollama
 endpoint + `num_gpu: 0`.
 
 **Path B — In-process llama.cpp (no extra daemon):**
 ```
 $HERMES_HOME/iconic/venv/bin/pip install llama-cpp-python
-# download gemma-2-2b-it Q4_K_M GGUF (accept the Gemma license on the source first):
+# download gemma-4-E2B-it-Q4_K_M.gguf from unsloth/gemma-4-E2B-it-GGUF on Hugging Face
+# (Apache 2.0; no licence to accept and no sign-in needed):
 mkdir -p $HERMES_HOME/iconic/models
-# place: $HERMES_HOME/iconic/models/gemma-2-2b-it-Q4_K_M.gguf  (~1.7 GB)
+# place: $HERMES_HOME/iconic/models/gemma-4-E2B-it-Q4_K_M.gguf  (~3.1 GB)
 ```
-**Verify:** the GGUF file exists and is ~1.6–1.8 GB; `$HERMES_HOME/iconic/venv/bin/python -m
-hermes_iconic_memory.check_dreamer --model $HERMES_HOME/iconic/models/gemma-2-2b-it-Q4_K_M.gguf` loads it
+**Verify:** the GGUF file exists and is ~3.0–3.2 GB; `$HERMES_HOME/iconic/venv/bin/python -m
+hermes_iconic_memory.check_dreamer --model $HERMES_HOME/iconic/models/gemma-4-E2B-it-Q4_K_M.gguf` loads it
 on CPU and prints a one-line test completion.
 
 ### 3.4 Install the plugin into Hermes
@@ -173,7 +175,7 @@ $HERMES_HOME/iconic/venv/bin/python -m hermes_iconic_memory.init_config --mode <
 | `db_backend` | `sqlite` | `sqlite` = one file, zero-ops. Switch to `mariadb` only for huge corpora / multi-agent. |
 | `db_path` | `$HERMES_HOME/iconic/memory.db` | where memory lives; back this up. |
 | `embedder` | `fastembed:bge-small-en-v1.5` | the recall model; leave as-is. |
-| `dreamer` | `ollama:gemma2:2b` *or* `llama:<gguf path>` *or* `none` | `none` = recall-only mode. |
+| `dreamer` | `ollama:gemma4:e2b` *or* `llama:<gguf path>` *or* `none` | `none` = recall-only mode. |
 | `cpu_affinity` | auto (leave N−1 cores for the user) | pin the dreamer so it never fights chat models. |
 | `recall.budget_ms` | `400` | recall fail-open deadline; raise only on a very slow disk. |
 | `recall.weights` | `cos 0.6 / sal 0.25 / rec 0.15` | ranking blend; leave as-is. |

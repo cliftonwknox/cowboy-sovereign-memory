@@ -1,5 +1,17 @@
 # Changelog — Hermes Iconic Memory
 
+## v2.3 — 2026-10-04
+
+### Fixed — the dreamer is Gemma 4 E2B, not Gemma 2 2B
+
+The runbook, README, overview and design named `gemma-2-2b-it` (`gemma2:2b` in Ollama). The
+dreamer is Gemma 4's 2B size, E2B: `gemma4:e2b` in Ollama (~4.6 GB), or
+`gemma-4-E2B-it-Q4_K_M.gguf` from unsloth/gemma-4-E2B-it-GGUF (~3.1 GB). It is Apache 2.0 and
+not gated, so the step telling the installer to accept the Gemma licence is gone. The
+download sizes and the free-disk thresholds follow the new files. The RAM thresholds were
+raised by the growth in the weights; that is an estimate from the file sizes, not yet
+measured on a running dreamer.
+
 ## v2.2 — 2026-08-13
 
 The first corrections to come from a real installation rather than from reading source.

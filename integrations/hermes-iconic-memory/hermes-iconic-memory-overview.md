@@ -37,7 +37,7 @@ it's the freshest tier that feeds everything else.
 | **Tiered store** | Three layers: **Iconic** (in-RAM buffer of recent turns), **Episodic** (auto-extracted facts that decay), **Semantic** (consolidated, durable facts). Memory flows upward as it proves useful. |
 | **Database** | **SQLite by default** (one file, nothing to install) or **MariaDB** by option (for large corpora / power users). Same schema either way. |
 | **Embedded embedder** | A small in-process model (`bge-small`, ONNX) turns text into vectors for semantic search. No server, runs on CPU. |
-| **Dreamer (2B Gemma)** | A `gemma-2-2b-it` model, **pinned to CPU + RAM** (off the GPU), that extracts facts from sessions and adjudicates merges during maintenance. Runs in the background — never blocks a reply. |
+| **Dreamer (2B Gemma)** | A `gemma-4-E2B-it` model (Gemma 4, 2B size), **pinned to CPU + RAM** (off the GPU), that extracts facts from sessions and adjudicates merges during maintenance. Runs in the background — never blocks a reply. |
 | **Recall engine** | Per turn: embeds the query, vector-searches memory, ranks by **relevance + importance + recency**, de-duplicates, and returns a compact block — with a strict time budget so it never slows the agent (fail-open). |
 | **Sleep cycle** | Periodic maintenance: reinforce what got used, retire what nothing has asked for within its window (archived and restorable; deleting for real is a separate operation), merge related ones, then a deterministic self-check that repairs mechanical faults and reports the rest. |
 | **Memory tools** | `remember`, `recall`, `forget`, `pin` — so the agent (and you) can manage memory directly, on top of automatic capture. |
@@ -85,7 +85,7 @@ no-op tool set so Hermes can load and select it.
 *Deliverable: a working, manually-curated semantic memory.*
 
 **Phase 2 — Auto-capture (the dreamer).**
-- Integrate `gemma-2-2b-it` via llama.cpp, CPU-pinned, detached.
+- Integrate `gemma-4-E2B-it` via llama.cpp, CPU-pinned, detached.
 - `sync_turn` → iconic ring; `on_session_end` → dreamer extraction → dedup-write to episodic.
 *Deliverable: it remembers on its own.*
 
@@ -120,7 +120,7 @@ fires, and the agent never stalls when the embedder/dreamer are slow or absent.
 
 **Dreamer (Phase 2)**
 - `llama-cpp-python` (or a llama.cpp binary) — CPU inference.
-- **`gemma-2-2b-it` GGUF** weights (~1.6–2.7 GB depending on quant; Q4_K_M recommended for friends).
+- **`gemma-4-E2B-it` GGUF** weights (~2.3–5.3 GB depending on quant, ~3.1 GB at Q4_K_M; Q4_K_M recommended for friends).
 - A few CPU cores + ~3–4 GB free RAM for the pinned dreamer (`n_gpu_layers=0`, `mmap`, `numactl`/
   `taskset` for affinity).
 

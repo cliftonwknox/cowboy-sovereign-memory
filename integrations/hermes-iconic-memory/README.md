@@ -88,8 +88,8 @@ no lecture.
 
 - **Host:** Hermes Agent + Python 3.11+.
 - **Core:** `fastembed` (+ onnxruntime), `numpy`, SQLite (stdlib); optional `sqlite-vec`.
-- **Full mode (dreamer):** Ollama (`ollama pull gemma2:2b`) *or* `llama-cpp-python` + a
-  `gemma-2-2b-it` Q4_K_M GGUF (~1.7 GB) + a few CPU cores and ~3–4 GB free RAM.
+- **Full mode (dreamer):** Ollama (`ollama pull gemma4:e2b`, ~4.6 GB) *or* `llama-cpp-python` + a
+  `gemma-4-E2B-it` Q4_K_M GGUF (~3.1 GB) + a few CPU cores and ~5–6 GB free RAM.
 - **Power option:** MariaDB 11.7+ (native `VECTOR`) + a Python connector.
 - **None required:** no cloud, no API keys, no GPU.
 

@@ -145,7 +145,7 @@ return fewer results than asked for.
 - **Embedder — embedded, no server.** **`fastembed` (ONNX) `bge-small-en-v1.5`** in-process on CPU
   (~130 MB, fast, deterministic). Optional: point at a llama.cpp embedding endpoint for those who
   already run one. `embed_model_id` + `embed_dim` stored per row so a model swap re-embeds cleanly.
-- **Dreamer — CPU-pinned 2B Gemma.** **`gemma-2-2b-it` GGUF via llama.cpp**, **pinned to CPU + RAM**
+- **Dreamer — CPU-pinned 2B Gemma.** **`gemma-4-E2B-it` GGUF via llama.cpp**, **pinned to CPU + RAM**
   (`taskset`/`numactl --membind`, `n_gpu_layers=0`, `mmap`), so it never contends with the user's
   GPU chat models. Runs **detached/background** for extraction and during sleep. 2B is the floor that
   still extracts + adjudicates reliably; it's the friend-grade analog of Cowboy's 4B dreamer.
